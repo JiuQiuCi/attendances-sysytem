@@ -1,2 +1,5 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+<<<<<<< HEAD
+=======
+/mvnw text eol=lf
+*.cmd text eol=crlf
+>>>>>>> 2ce4c94 (完成第四周分层架构开发)
