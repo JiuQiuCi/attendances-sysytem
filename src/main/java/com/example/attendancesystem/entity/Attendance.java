@@ -1,9 +1,16 @@
 package com.example.attendancesystem.entity;
 
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
 import javax.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "attendances")
 public class Attendance {
@@ -24,16 +31,11 @@ public class Attendance {
     private LocalDate attendanceDate;
 
     @Column(nullable = false, length = 20)
-    private String status; // present, absent, late
+    private String status;  // present, absent, late
 
     @Column(name = "seat_position", length = 50)
     private String seatPosition;
 
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    // 无参构造
-    public Attendance() {}
-
-    // Getter/Setter 省略（可使用 Lombok）
+    private LocalDateTime createdAt = LocalDateTime.now();
 }

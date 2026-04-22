@@ -1,60 +1,55 @@
 package com.example.attendancesystem.Service.impl;
 
-import com.example.attendancesystem.DAO.StudentDao;
-import com.example.attendancesystem.entity.AttendanceRecord;
 import com.example.attendancesystem.entity.Student;
+import com.example.attendancesystem.repository.StudentRepository;
 import com.example.attendancesystem.Service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@Transactional
 public class StudentServiceImpl implements StudentService {
 
     @Autowired
-    private StudentDao studentDao;
+    private StudentRepository studentRepository;
 
     @Override
-    public Optional<Student> getStudentById(String studentId) {
-        return studentDao.findByStudentId(studentId);
-    }
-
-    @Override
-    public List<Student> getStudentsByClass(String className, int page, int pageSize) {
-        List<Student> students;
-        if (className == null || className.trim().isEmpty()) {
-            students = studentDao.findAll();
-        } else {
-            students = studentDao.findByClassName(className);
-        }
-        // 分页
-        int start = (page - 1) * pageSize;
-        if (start >= students.size()) {
-            return List.of();
-        }
-        int end = Math.min(start + pageSize, students.size());
-        return students.subList(start, end);
-    }
-
-    @Override
-    public String updateAttendance(AttendanceRecord record) {
-        // 业务校验
-        if (record.getStudentId() == null || record.getStudentId().isEmpty()) {
-            throw new IllegalArgumentException("学号不能为空");
-        }
-        // 调用Dao保存考勤（假设有 AttendanceDao，此处为示例）
-        // studentDao.updateAttendance(record);
-        return String.format("学生 %s 的 %s 考勤已更新为：%s",
-                record.getStudentId(), record.getDate(), record.getStatus());
-    }
-
-    @Override
-    public int addStudent(Student student) {
+    public Student addStudent(Student student) {
+        // 业务校验：学号不能为空
         if (student.getStudentId() == null || student.getStudentId().isEmpty()) {
             throw new IllegalArgumentException("学号不能为空");
         }
-        return studentDao.insertStudent(student);
+        return studentRepository.save(student);
+    }
+
+    @Override
+    public Optional<Student> getStudentById(Integer id) {
+        return studentRepository.findById(id);
+    }
+
+    @Override
+    public Optional<Student> getStudentByStudentId(String studentId) {
+        return studentRepository.findByStudentId(studentId);
+    }
+
+    @Override
+    public List<Student> getStudentsByClass(String className) {
+        if (className == null || className.isEmpty()) {
+            return studentRepository.findAll();
+        }
+        return studentRepository.findByClassName(className);
+    }
+
+    @Override
+    public List<Student> getAllStudents() {
+        return studentRepository.findAll();
+    }
+
+    @Override
+    public void deleteStudent(Integer id) {
+        studentRepository.deleteById(id);
     }
 }
