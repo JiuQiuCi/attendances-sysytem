@@ -1,13 +1,28 @@
 package com.example.attendancesystem.entity;
 
+import lombok.Data;
+import javax.persistence.*;
 import java.time.LocalDateTime;
 
+@Data
+@Entity
+@Table(name = "users")
 public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
+
+    @Column(unique = true, nullable = false)
     private String username;
+
+    @Column(nullable = false)
     private String password;
+
     private String role;   // admin, teacher, student
+
     private String name;
+
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     // 无参构造
@@ -22,19 +37,4 @@ public class User {
         this.name = name;
         this.createdAt = createdAt;
     }
-
-    // Getter 和 Setter（使用 Lombok 可简化，这里手动写）
-    public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
-

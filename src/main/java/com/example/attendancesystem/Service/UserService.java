@@ -11,4 +11,9 @@ public interface UserService {
     List<User> getAllTeachers();
     int updateUser(User user);
     int deleteUser(Integer id);
+    Optional<User> findByUsername(String username);
+    User save(User user);
+
+    boolean authenticate(String username, String rawPassword);
+    User register(String username, String rawPassword, String name, String role);
 }
