@@ -1,11 +1,19 @@
 package com.example.attendancesystem.dto;
-
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
 public class RegisterRequest {
+
+    @JsonProperty("username")
     private String username;
+
+    @JsonProperty("password")
     private String password;
+
+    @JsonProperty("name")
     private String name;
-    private String role;   // 可选：默认 student
+
+    @JsonProperty("role")
+    private String role;
 }

@@ -1,6 +1,5 @@
 package com.example.attendancesystem.config;
 
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -15,8 +14,8 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf().disable()
                 .authorizeRequests()
-                .antMatchers("/auth/**").permitAll()   // 登录注册接口公开
-                .anyRequest().authenticated()          // 其他接口需要认证（可根据需要调整）
+                .antMatchers("/auth/**").permitAll()  // 放行所有 /auth 请求
+                .anyRequest().authenticated()         // 其他 API 需要认证
                 .and()
                 .httpBasic();
         return http.build();
