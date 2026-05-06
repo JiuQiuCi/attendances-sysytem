@@ -12,11 +12,19 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf().disable()
+        http
+                .csrf().disable()
                 .authorizeRequests()
-                .antMatchers("/auth/**").permitAll()  // 放行所有 /auth 请求
-                .anyRequest().authenticated()         // 其他 API 需要认证
+                // 放行所有静态资源、登录注册页面及认证API
+                .antMatchers(
+                        "/", "/register", "/login", "/index",
+                        "/css/**", "/js/**", "/favicon.ico",
+                        "/auth/**"
+                ).permitAll()
+                // 其他请求需要认证
+                .anyRequest().authenticated()
                 .and()
+                .formLogin().disable()  // 完全禁用默认登录页
                 .httpBasic();
         return http.build();
     }
