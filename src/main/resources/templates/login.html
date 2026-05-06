@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生考勤系统 - 登录</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="container">
+    <div class="form-card">
+        <h2>用户登录</h2>
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" placeholder="请输入用户名" autocomplete="off">
+                <span class="error-msg" id="usernameError"></span>
+            </div>
+            <div class="input-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" placeholder="请输入密码">
+                <span class="error-msg" id="passwordError"></span>
+            </div>
+            <button type="submit" class="btn-submit">登录</button>
+            <div class="form-footer">
+                没有账号？<a href="/register">立即注册</a>
+            </div>
+            <div id="globalError" class="global-error"></div>
+        </form>
+    </div>
+</div>
+<script src="/js/auth.js"></script>
+</body>
+</html>

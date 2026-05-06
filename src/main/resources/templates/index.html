@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>系统首页</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="container">
+    <div class="form-card">
+        <h2>欢迎，<span id="usernameDisplay"></span></h2>
+        <p>登录成功！这是系统首页。</p>
+        <button id="logoutBtn" class="btn-submit">退出登录</button>
+    </div>
+</div>
+<script>
+    const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+    if (!user.username) {
+        window.location.href = '/login';
+    } else {
+        document.getElementById('usernameDisplay').innerText = user.name || user.username;
+    }
+    document.getElementById('logoutBtn')?.addEventListener('click', () => {
+        sessionStorage.clear();
+        window.location.href = '/login';
+    });
+</script>
+</body>
+</html>

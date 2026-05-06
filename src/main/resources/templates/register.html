@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生考勤系统 - 注册</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="container">
+    <div class="form-card">
+        <h2>用户注册</h2>
+        <form id="registerForm">
+            <div class="input-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" placeholder="请输入用户名" autocomplete="off">
+                <span class="error-msg" id="usernameError"></span>
+            </div>
+            <div class="input-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" placeholder="请输入密码">
+                <span class="error-msg" id="passwordError"></span>
+            </div>
+            <div class="input-group">
+                <label for="confirmPassword">确认密码</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="请再次输入密码">
+                <span class="error-msg" id="confirmError"></span>
+            </div>
+            <div class="input-group">
+                <label for="name">真实姓名</label>
+                <input type="text" id="name" name="name" placeholder="请输入真实姓名">
+                <span class="error-msg" id="nameError"></span>
+            </div>
+            <div class="input-group">
+                <label for="role">角色</label>
+                <select id="role" name="role">
+                    <option value="student">学生</option>
+                    <option value="teacher">教师</option>
+                </select>
+            </div>
+            <button type="submit" class="btn-submit">注册</button>
+            <div class="form-footer">
+                已有账号？<a href="/login">立即登录</a>
+            </div>
+            <div id="globalError" class="global-error"></div>
+        </form>
+    </div>
+</div>
+<script src="/js/auth.js"></script>
+</body>
+</html>
