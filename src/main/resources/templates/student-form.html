@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>学生信息表单</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .form-container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+        .error {
+            color: #6aff00;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .btn-submit {
+            background: #00ff59;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .btn-submit:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+<div class="form-container">
+    <h2 th:text="${student != null ? '编辑学生' : '新增学生'}"></h2>
+    <form id="studentForm">
+        <input type="hidden" id="id" name="id" th:value="${student?.id}">
+        <div class="form-group">
+            <label>学号 *</label>
+            <input type="text" id="studentId" name="studentId" th:value="${student?.studentId}">
+            <div class="error" id="studentIdError"></div>
+        </div>
+        <div class="form-group">
+            <label>姓名 *</label>
+            <input type="text" id="name" name="name" th:value="${student?.name}">
+            <div class="error" id="nameError"></div>
+        </div>
+        <div class="form-group">
+            <label>班级</label>
+            <input type="text" id="className" name="className" th:value="${student?.className}">
+        </div>
+        <div class="form-group">
+            <label>性别</label>
+            <select id="gender" name="gender">
+                <option value="">请选择</option>
+                <option value="男" th:selected="${student?.gender == '男'}">男</option>
+                <option value="女" th:selected="${student?.gender == '女'}">女</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>出生日期</label>
+            <input type="date" id="birthDate" name="birthDate" th:value="${student?.birthDate}">
+        </div>
+        <div class="form-group">
+            <label>联系方式</label>
+            <input type="tel" id="phone" name="phone" th:value="${student?.phone}">
+            <div class="error" id="phoneError"></div>
+        </div>
+        <button type="submit" class="btn-submit">保存</button>
+        <button type="button" onclick="window.location.href='/student/list-page'" class="btn-submit" style="background:#6c757d">返回列表</button>
+    </form>
+</div>
+
+<script>
+    const form = document.getElementById('studentForm');
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        // 清除错误
+        document.querySelectorAll('.error').forEach(el => el.textContent = '');
+
+        const id = document.getElementById('id').value;
+        const studentId = document.getElementById('studentId').value.trim();
+        const name = document.getElementById('name').value.trim();
+        const className = document.getElementById('className').value.trim();
+        const gender = document.getElementById('gender').value;
+        const birthDate = document.getElementById('birthDate').value;
+        const phone = document.getElementById('phone').value.trim();
+
+        let hasError = false;
+        if (!studentId) {
+            document.getElementById('studentIdError').textContent = '学号不能为空';
+            hasError = true;
+        }
+        if (!name) {
+            document.getElementById('nameError').textContent = '姓名不能为空';
+            hasError = true;
+        }
+        if (phone && !/^1[3-9]\d{9}$/.test(phone)) {
+            document.getElementById('phoneError').textContent = '手机号格式不正确（11位数字，1开头）';
+            hasError = true;
+        }
+        if (hasError) return;
+
+        const student = { studentId, name, className, gender, birthDate, phone };
+        if (id) student.id = parseInt(id);
+
+        const url = id ? '/student/update' : '/student/add';
+        const method = id ? 'PUT' : 'POST';
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(student)
+            });
+            const result = await response.json();
+            if (result.code === 200) {
+                alert(id ? '更新成功' : '添加成功');
+                window.location.href = '/student/list-page';
+            } else {
+                alert(result.message);
+            }
+        } catch (err) {
+            alert('网络错误');
+        }
+    });
+</script>
+</body>
+</html>

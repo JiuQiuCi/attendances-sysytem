@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>学生列表</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            cursor: pointer;
+        }
+        .pagination {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .search-bar {
+            margin-bottom: 20px;
+        }
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-warning { background: #ffc107; }
+    </style>
+</head>
+<body>
+<div style="padding: 20px;">
+    <h2>学生管理</h2>
+    <div class="search-bar">
+        <input type="text" id="keyword" placeholder="搜索(学号/姓名)" style="width: 200px;">
+        <button onclick="search()" class="btn btn-primary">搜索</button>
+        <button onclick="addStudent()" class="btn btn-primary">新增学生</button>
+        <button onclick="batchDelete()" class="btn btn-danger">批量删除</button>
+    </div>
+    <table id="studentTable">
+        <thead>
+        <tr>
+            <th><input type="checkbox" id="selectAll"></th>
+            <th data-sort="studentId">学号 <span class="sort-arrow"></span></th>
+            <th data-sort="name">姓名 <span class="sort-arrow"></span></th>
+            <th data-sort="gender">性别</th>
+            <th data-sort="birthDate">出生日期</th>
+            <th data-sort="phone">联系方式</th>
+            <th data-sort="className">班级</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody id="tableBody">
+        <!-- 动态加载 -->
+        </tbody>
+    </table>
+    <div class="pagination" id="pagination"></div>
+</div>
+
+<script>
+    let currentPage = 0;
+    let pageSize = 10;
+    let sortBy = 'id';
+    let direction = 'asc';
+    let keyword = '';
+
+    function loadData() {
+        let url = `/student/list?page=${currentPage}&size=${pageSize}&sortBy=${sortBy}&direction=${direction}`;
+        if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+        fetch(url)
+            .then(res => res.json())
+            .then(result => {
+                if (result.code === 200) {
+                    renderTable(result.data.content);
+                    renderPagination(result.data);
+                } else {
+                    alert(result.message);
+                }
+            })
+            .catch(err => console.error(err));
+    }
+
+    function renderTable(students) {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+        students.forEach(s => {
+            const row = tbody.insertRow();
+            row.insertCell(0).innerHTML = `<input type="checkbox" class="studentCheckbox" value="${s.id}">`;
+            row.insertCell(1).innerText = s.studentId;
+            row.insertCell(2).innerText = s.name;
+            row.insertCell(3).innerText = s.gender || '';
+            row.insertCell(4).innerText = s.birthDate || '';
+            row.insertCell(5).innerText = s.phone || '';
+            row.insertCell(6).innerText = s.className || '';
+            const actions = row.insertCell(7);
+            actions.innerHTML = `<button class="btn btn-warning" onclick="editStudent(${s.id})">编辑</button>
+                                 <button class="btn btn-danger" onclick="deleteStudent(${s.id})">删除</button>`;
+        });
+    }
+
+    function renderPagination(page) {
+        const div = document.getElementById('pagination');
+        div.innerHTML = '';
+        if (!page) return;
+        const totalPages = page.totalPages;
+        for (let i = 0; i < totalPages; i++) {
+            const btn = document.createElement('button');
+            btn.innerText = i + 1;
+            btn.className = 'btn';
+            if (i === currentPage) btn.style.backgroundColor = '#007bff';
+            btn.onclick = () => {
+                currentPage = i;
+                loadData();
+            };
+            div.appendChild(btn);
+        }
+    }
+
+    function search() {
+        keyword = document.getElementById('keyword').value;
+        currentPage = 0;
+        loadData();
+    }
+
+    function addStudent() {
+        window.location.href = '/student/form';
+    }
+
+    function editStudent(id) {
+        window.location.href = `/student/form?id=${id}`;
+    }
+
+    async function deleteStudent(id) {
+        if (confirm('确定删除吗？')) {
+            const response = await fetch(`/student/${id}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (result.code === 200) {
+                alert('删除成功');
+                loadData();
+            } else {
+                alert(result.message);
+            }
+        }
+    }
+
+    async function batchDelete() {
+        const checkboxes = document.querySelectorAll('.studentCheckbox:checked');
+        const ids = Array.from(checkboxes).map(cb => parseInt(cb.value));
+        if (ids.length === 0) {
+            alert('请至少选择一项');
+            return;
+        }
+        if (confirm(`确定删除 ${ids.length} 名学生吗？`)) {
+            const response = await fetch('/student/batch', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(ids)
+            });
+            const result = await response.json();
+            if (result.code === 200) {
+                alert('批量删除成功');
+                loadData();
+            } else {
+                alert(result.message);
+            }
+        }
+    }
+
+    // 排序点击
+    document.querySelectorAll('th[data-sort]').forEach(th => {
+        th.addEventListener('click', () => {
+            const field = th.getAttribute('data-sort');
+            if (sortBy === field) {
+                direction = direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortBy = field;
+                direction = 'asc';
+            }
+            loadData();
+        });
+    });
+
+    // 全选
+    document.getElementById('selectAll').addEventListener('change', (e) => {
+        document.querySelectorAll('.studentCheckbox').forEach(cb => cb.checked = e.target.checked);
+    });
+
+    loadData();
+</script>
+</body>
+</html>
