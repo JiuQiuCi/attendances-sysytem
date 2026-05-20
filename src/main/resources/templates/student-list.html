@@ -6,222 +6,38 @@
     <title>学生管理 - 西财考勤系统</title>
     <link rel="stylesheet" href="/css/style.css">
     <style>
-        /* 覆盖全局背景遮罩，使此页面更亮 */
-        body::before {
-            background: rgba(255, 255, 255, 0.92);
-        }
-        .page-container {
-            max-width: 1400px;
-            margin: 30px auto;
-            padding: 20px;
-        }
-        .card {
-            background: white;
-            border-radius: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            padding: 25px;
-            margin-bottom: 30px;
-        }
-        .page-title {
-            font-size: 28px;
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 20px;
-            border-left: 5px solid #3498db;
-            padding-left: 20px;
-        }
-        .toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-        }
-        .search-group {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        .search-input {
-            padding: 10px 16px;
-            border: 1px solid #ddd;
-            border-radius: 40px;
-            width: 260px;
-            font-size: 14px;
-            transition: 0.2s;
-        }
-        .search-input:focus {
-            outline: none;
-            border-color: #3498db;
-            box-shadow: 0 0 0 3px rgba(52,152,219,0.1);
-        }
-        .btn {
-            padding: 8px 20px;
-            border: none;
-            border-radius: 40px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: 0.2s;
-        }
-        .btn-primary {
-            background: #3498db;
-            color: white;
-        }
-        .btn-primary:hover {
-            background: #2980b9;
-            transform: translateY(-1px);
-        }
-        .btn-danger {
-            background: #e74c3c;
-            color: white;
-        }
-        .btn-danger:hover {
-            background: #c0392b;
-        }
-        .btn-warning {
-            background: #f39c12;
-            color: white;
-        }
-        .btn-warning:hover {
-            background: #e67e22;
-        }
-        .btn-secondary {
-            background: #95a5a6;
-            color: white;
-        }
-        .btn-secondary:hover {
-            background: #7f8c8d;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        th, td {
-            padding: 14px 12px;
-            text-align: left;
-            border-bottom: 1px solid #ecf0f1;
-        }
-        th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: #2c3e50;
-            cursor: pointer;
-            user-select: none;
-        }
-        th:hover {
-            background-color: #e9ecef;
-        }
-        tr:hover {
-            background-color: #fef9e7;
-        }
-        .sort-arrow {
-            display: inline-block;
-            margin-left: 5px;
-            font-size: 12px;
-        }
-        .checkbox-col {
-            width: 40px;
-            text-align: center;
-        }
-        .action-buttons {
-            display: flex;
-            gap: 8px;
-        }
-        .action-buttons .btn {
-            padding: 5px 12px;
-            font-size: 12px;
-        }
-        .pagination {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 30px;
-            flex-wrap: wrap;
-        }
-        .pagination button {
-            padding: 8px 14px;
-            border: 1px solid #ddd;
-            background: white;
-            border-radius: 30px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .pagination button.active {
-            background: #3498db;
-            color: white;
-            border-color: #3498db;
-        }
-        .pagination button:hover:not(.active) {
-            background: #ecf0f1;
-        }
-        .empty-row {
-            text-align: center;
-            padding: 40px;
-            color: #7f8c8d;
-        }
-        @media (max-width: 768px) {
-            .toolbar {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .search-group {
-                justify-content: center;
-            }
-            table, thead, tbody, th, td, tr {
-                display: block;
-            }
-            thead {
-                display: none;
-            }
-            tr {
-                margin-bottom: 15px;
-                border: 1px solid #ddd;
-                border-radius: 12px;
-                padding: 10px;
-            }
-            td {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                border-bottom: 1px solid #eee;
-            }
-            td::before {
-                content: attr(data-label);
-                font-weight: bold;
-                width: 40%;
-            }
-        }
+        .page-wrap { max-width: 1400px; margin: 30px auto; padding: 20px; }
+        .checkbox-col { width: 40px; text-align: center; }
+        .action-btns { display: flex; gap: 6px; }
+        .empty-row td { text-align: center; padding: 40px; color: var(--text-secondary); }
     </style>
 </head>
 <body>
-<div class="page-container">
+<div class="page-wrap">
     <div class="card">
-        <div class="page-title">👨‍🎓 学生信息管理</div>
+        <div class="page-header">
+            <span class="page-title">学生信息管理</span>
+        </div>
 
         <div class="toolbar">
-            <div class="search-group">
+            <div class="search-box">
                 <input type="text" id="keyword" class="search-input" placeholder="搜索学号或姓名...">
-                <button onclick="search()" class="btn btn-primary">🔍 搜索</button>
-                <button onclick="resetSearch()" class="btn btn-secondary">重置</button>
+                <button onclick="search()" class="btn btn-primary btn-sm">搜索</button>
+                <button onclick="resetSearch()" class="btn btn-secondary btn-sm">重置</button>
             </div>
-            <div>
-                <button onclick="addStudent()" class="btn btn-primary">➕ 新增学生</button>
-                <button onclick="batchDelete()" class="btn btn-danger">🗑️ 批量删除</button>
+            <div style="display:flex;gap:8px;">
+                <button onclick="addStudent()" class="btn btn-primary">新增学生</button>
+                <button onclick="batchDelete()" class="btn btn-danger">批量删除</button>
             </div>
         </div>
 
-        <div style="overflow-x: auto;">
+        <div class="table-wrapper">
             <table id="studentTable">
                 <thead>
                 <tr>
                     <th class="checkbox-col"><input type="checkbox" id="selectAll"></th>
-                    <th data-sort="studentId">学号 <span class="sort-arrow"></span></th>
-                    <th data-sort="name">姓名 <span class="sort-arrow"></span></th>
+                    <th data-sort="studentId">学号</th>
+                    <th data-sort="name">姓名</th>
                     <th data-sort="gender">性别</th>
                     <th data-sort="birthDate">出生日期</th>
                     <th data-sort="phone">联系方式</th>
@@ -230,7 +46,7 @@
                 </tr>
                 </thead>
                 <tbody id="tableBody">
-                <tr><td colspan="8" class="empty-row">加载中...</td></tr>
+                <tr class="empty-row"><td colspan="8">加载中...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -240,11 +56,7 @@
 </div>
 
 <script>
-    let currentPage = 0;
-    let pageSize = 10;
-    let sortBy = 'id';
-    let direction = 'asc';
-    let keyword = '';
+    let currentPage = 0, pageSize = 10, sortBy = 'id', direction = 'asc', keyword = '';
 
     function loadData() {
         let url = `/student/list?page=${currentPage}&size=${pageSize}&sortBy=${sortBy}&direction=${direction}`;
@@ -255,9 +67,7 @@
                 if (result.code === 200) {
                     renderTable(result.data.content);
                     renderPagination(result.data);
-                } else {
-                    alert(result.message);
-                }
+                } else { alert(result.message); }
             })
             .catch(err => console.error(err));
     }
@@ -265,33 +75,25 @@
     function renderTable(students) {
         const tbody = document.getElementById('tableBody');
         if (!students || students.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="empty-row">暂无数据</td></tr>';
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="8">暂无数据</td></tr>';
             return;
         }
         tbody.innerHTML = '';
         students.forEach(s => {
             const row = tbody.insertRow();
             row.insertCell(0).innerHTML = `<input type="checkbox" class="studentCheckbox" value="${s.id}">`;
-            row.insertCell(1).innerHTML = `<span data-label="学号">${escapeHtml(s.studentId)}</span>`;
-            row.insertCell(2).innerHTML = `<span data-label="姓名">${escapeHtml(s.name)}</span>`;
-            row.insertCell(3).innerHTML = `<span data-label="性别">${escapeHtml(s.gender || '')}</span>`;
-            row.insertCell(4).innerHTML = `<span data-label="出生日期">${s.birthDate || ''}</span>`;
-            row.insertCell(5).innerHTML = `<span data-label="联系方式">${escapeHtml(s.phone || '')}</span>`;
-            row.insertCell(6).innerHTML = `<span data-label="班级">${escapeHtml(s.className || '')}</span>`;
+            row.insertCell(1).innerText = s.studentId;
+            row.insertCell(2).innerText = s.name;
+            row.insertCell(3).innerText = s.gender || '';
+            row.insertCell(4).innerText = s.birthDate || '';
+            row.insertCell(5).innerText = s.phone || '';
+            row.insertCell(6).innerText = s.className || '';
             const actions = row.insertCell(7);
-            actions.className = 'action-buttons';
+            actions.className = 'action-btns';
             actions.innerHTML = `
-                <button class="btn btn-warning" onclick="editStudent(${s.id})">编辑</button>
-                <button class="btn btn-danger" onclick="deleteStudent(${s.id})">删除</button>
+                <button class="btn btn-warning btn-sm" onclick="editStudent(${s.id})">编辑</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteStudent(${s.id})">删除</button>
             `;
-            // 为移动端添加 data-label
-            for (let i = 1; i <= 6; i++) {
-                const cell = row.cells[i];
-                const label = document.querySelector(`th:nth-child(${i+1})`)?.innerText.trim() || '';
-                if (cell.firstChild && cell.firstChild.setAttribute) {
-                    cell.firstChild.setAttribute('data-label', label);
-                }
-            }
         });
     }
 
@@ -299,104 +101,55 @@
         const div = document.getElementById('pagination');
         div.innerHTML = '';
         if (!page || page.totalPages <= 1) return;
-        const total = page.totalPages;
-        for (let i = 0; i < total; i++) {
+        for (let i = 0; i < page.totalPages; i++) {
             const btn = document.createElement('button');
             btn.innerText = i + 1;
             if (i === currentPage) btn.classList.add('active');
-            btn.onclick = () => {
-                currentPage = i;
-                loadData();
-            };
+            btn.onclick = () => { currentPage = i; loadData(); };
             div.appendChild(btn);
         }
     }
 
-    function search() {
-        keyword = document.getElementById('keyword').value;
-        currentPage = 0;
-        loadData();
-    }
-
-    function resetSearch() {
-        document.getElementById('keyword').value = '';
-        keyword = '';
-        currentPage = 0;
-        loadData();
-    }
-
-    function addStudent() {
-        window.location.href = '/student/form';
-    }
-
-    function editStudent(id) {
-        window.location.href = `/student/form?id=${id}`;
-    }
+    function search() { keyword = document.getElementById('keyword').value; currentPage = 0; loadData(); }
+    function resetSearch() { document.getElementById('keyword').value = ''; keyword = ''; currentPage = 0; loadData(); }
+    function addStudent() { window.location.href = '/student/form'; }
+    function editStudent(id) { window.location.href = `/student/form?id=${id}`; }
 
     async function deleteStudent(id) {
-        if (confirm('确定要删除该学生吗？')) {
-            const response = await fetch(`/student/${id}`, { method: 'DELETE' });
-            const result = await response.json();
-            if (result.code === 200) {
-                alert('删除成功');
-                loadData();
-            } else {
-                alert(result.message);
-            }
-        }
+        if (!confirm('确定要删除该学生吗？')) return;
+        const resp = await fetch(`/student/${id}`, { method: 'DELETE' });
+        const result = await resp.json();
+        if (result.code === 200) { alert('删除成功'); loadData(); }
+        else alert(result.message);
     }
 
     async function batchDelete() {
         const checkboxes = document.querySelectorAll('.studentCheckbox:checked');
         const ids = Array.from(checkboxes).map(cb => parseInt(cb.value));
-        if (ids.length === 0) {
-            alert('请至少选择一名学生');
-            return;
-        }
-        if (confirm(`确定要删除 ${ids.length} 名学生吗？`)) {
-            const response = await fetch('/student/batch', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(ids)
-            });
-            const result = await response.json();
-            if (result.code === 200) {
-                alert('批量删除成功');
-                loadData();
-            } else {
-                alert(result.message);
-            }
-        }
+        if (ids.length === 0) { alert('请至少选择一名学生'); return; }
+        if (!confirm(`确定要删除 ${ids.length} 名学生吗？`)) return;
+        const resp = await fetch('/student/batch', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(ids)
+        });
+        const result = await resp.json();
+        if (result.code === 200) { alert('批量删除成功'); loadData(); }
+        else alert(result.message);
     }
 
-    // 排序
     document.querySelectorAll('th[data-sort]').forEach(th => {
         th.addEventListener('click', () => {
             const field = th.getAttribute('data-sort');
-            if (sortBy === field) {
-                direction = direction === 'asc' ? 'desc' : 'asc';
-            } else {
-                sortBy = field;
-                direction = 'asc';
-            }
+            if (sortBy === field) direction = direction === 'asc' ? 'desc' : 'asc';
+            else { sortBy = field; direction = 'asc'; }
             loadData();
         });
     });
 
-    // 全选/取消全选
     document.getElementById('selectAll').addEventListener('change', (e) => {
         document.querySelectorAll('.studentCheckbox').forEach(cb => cb.checked = e.target.checked);
     });
-
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
-    }
 
     loadData();
 </script>

@@ -5,165 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>西财学生考勤系统 - 首页</title>
     <link rel="stylesheet" href="/css/style.css">
-    <style>
-        /* 覆盖全局样式，使页面更精致 */
-        body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-            margin: 0;
-            padding: 20px;
-            min-height: 100vh;
-        }
-
-        .dashboard {
-            max-width: 1300px;
-            margin: 0 auto;
-        }
-
-        /* 头部区域：校徽 + 标题 */
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: white;
-            border-radius: 20px;
-            padding: 15px 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-        }
-        .logo-area {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        .logo-img {
-            height: 60px;
-            width: auto;
-        }
-        .school-name {
-            font-size: 24px;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        .user-name {
-            font-size: 16px;
-            font-weight: 500;
-            color: #2c3e50;
-            background: #f0f2f5;
-            padding: 6px 14px;
-            border-radius: 30px;
-        }
-        .logout-btn {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 8px 20px;
-            border-radius: 30px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: 0.2s;
-        }
-        .logout-btn:hover {
-            background: #c0392b;
-            transform: scale(1.02);
-        }
-
-        /* 欢迎卡片 */
-        .welcome-card {
-            background: white;
-            border-radius: 24px;
-            padding: 30px;
-            margin-bottom: 40px;
-            text-align: center;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.1);
-        }
-        .welcome-card h2 {
-            color: #2c502e;
-            margin-bottom: 10px;
-        }
-        .welcome-card p {
-            color: #7f8c8d;
-            font-size: 16px;
-        }
-
-        /* 菜单网格 */
-        .menu-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 30px;
-            margin: 20px 0 40px;
-        }
-        .menu-card {
-            background: white;
-            border-radius: 24px;
-            padding: 30px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.06);
-            border: 1px solid rgba(0,0,0,0.03);
-        }
-        .menu-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 30px rgba(0,0,0,0.12);
-            border-color: #3498db;
-        }
-        .menu-icon {
-            font-size: 56px;
-            margin-bottom: 20px;
-        }
-        .menu-title {
-            font-size: 22px;
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 12px;
-        }
-        .menu-desc {
-            color: #7f8c8d;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-
-        /* 页脚 */
-        .footer {
-            text-align: center;
-            padding: 20px;
-            color: #2c3e50;
-            font-size: 14px;
-            background: rgba(255,255,255,0.7);
-            border-radius: 20px;
-            margin-top: 20px;
-        }
-
-        @media (max-width: 700px) {
-            .header {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
-            }
-            .menu-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
 </head>
 <body>
 <div class="dashboard">
-    <!-- 头部：学校Logo + 用户信息 -->
-    <div class="header">
-        <div class="logo-area">
-            <!-- 请将 swufe_logo.png 放到 src/main/resources/static/images/ 下，或使用网络图片 -->
-            <img src="/images/swufe_logo.png" alt="西南财经大学" class="logo-img" onerror="this.src='https://www.swufe.edu.cn/images/logo.png'">
-            <span class="school-name">西南财经大学 · 学生考勤系统</span>
+    <!-- 头部 -->
+    <div class="dash-header">
+        <div class="dash-brand">
+            <div class="dash-logo">西财</div>
+            <span class="dash-school">西南财经大学 · 学生考勤系统</span>
         </div>
-        <div class="user-info">
-            <span class="user-name" id="usernameDisplay"></span>
-            <button class="logout-btn" onclick="logout()">退出登录</button>
+        <div class="dash-user">
+            <span class="dash-username" id="usernameDisplay"></span>
+            <button class="btn btn-danger btn-sm" onclick="logout()">退出登录</button>
         </div>
     </div>
 
@@ -176,34 +29,33 @@
     <!-- 功能菜单 -->
     <div class="menu-grid">
         <div class="menu-card" onclick="location.href='/student/list-page'">
-            <div class="menu-icon">👨‍🎓</div>
+            <span class="menu-icon">👨‍🎓</span>
             <div class="menu-title">学生管理</div>
             <div class="menu-desc">管理学生基本信息（增删改查、批量删除、搜索排序）</div>
         </div>
         <div class="menu-card" onclick="location.href='/attendance/list-page'">
-            <div class="menu-icon">📅</div>
+            <span class="menu-icon">📅</span>
             <div class="menu-title">考勤管理</div>
             <div class="menu-desc">记录每日出勤，查看统计报表</div>
         </div>
         <div class="menu-card" onclick="location.href='/course/list-page'">
-            <div class="menu-icon">📚</div>
+            <span class="menu-icon">📚</span>
             <div class="menu-title">课程管理</div>
             <div class="menu-desc">维护课程信息，分配授课教师</div>
         </div>
         <div class="menu-card" onclick="location.href='/report'">
-            <div class="menu-icon">📊</div>
+            <span class="menu-icon">📊</span>
             <div class="menu-title">数据报表</div>
             <div class="menu-desc">出勤率分析，班级对比图表</div>
         </div>
     </div>
 
-    <div class="footer">
+    <div class="dash-footer">
         © 2026 西南财经大学 | 考勤管理系统
     </div>
 </div>
 
 <script>
-    // 从 sessionStorage 获取用户信息
     const user = JSON.parse(sessionStorage.getItem('user') || '{}');
     if (!user.username) {
         window.location.href = '/login';

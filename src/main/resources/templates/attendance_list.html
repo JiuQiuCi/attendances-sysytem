@@ -2,34 +2,19 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>考勤管理 - 西财考勤系统</title>
     <link rel="stylesheet" href="/css/style.css">
     <style>
-        body::before { background: rgba(255,255,255,0.92); }
-        .container { max-width: 1400px; margin: 30px auto; padding: 20px; }
-        .card { background: white; border-radius: 24px; padding: 25px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        .filter-bar { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; margin-bottom: 20px; }
-        .filter-group { display: flex; flex-direction: column; }
-        .filter-group label { font-weight: 600; margin-bottom: 5px; }
-        .filter-group select, .filter-group input { padding: 8px 12px; border-radius: 20px; border: 1px solid #ccc; }
-        .btn { padding: 8px 20px; border-radius: 30px; border: none; cursor: pointer; background: #3498db; color: white; }
-        .btn-danger { background: #e74c3c; }
-        .btn-success { background: #2ecc71; }
-        .btn-warning { background: #f39c12; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
-        th { background: #f8f9fa; cursor: pointer; }
-        .pagination { margin-top: 20px; text-align: center; }
-        .pagination button { margin: 0 5px; padding: 6px 12px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 20px; }
-        .pagination button.active { background: #3498db; color: white; }
-        .checkin-btn { background: #2ecc71; margin-right: 5px; }
-        .checkout-btn { background: #e67e22; }
+        .page-wrap { max-width: 1400px; margin: 30px auto; padding: 20px; }
     </style>
 </head>
 <body>
-<div class="container">
+<div class="page-wrap">
     <div class="card">
-        <h2>📅 考勤记录管理</h2>
+        <div class="page-header">
+            <span class="page-title">考勤记录管理</span>
+        </div>
 
         <!-- 筛选栏 -->
         <div class="filter-bar">
@@ -41,10 +26,10 @@
             </div>
             <div class="filter-group">
                 <label>快速筛选</label>
-                <div>
-                    <button type="button" class="btn" onclick="setQuickFilter('today')">今天</button>
-                    <button type="button" class="btn" onclick="setQuickFilter('week')">本周</button>
-                    <button type="button" class="btn" onclick="setQuickFilter('month')">本月</button>
+                <div style="display:flex;gap:6px;">
+                    <button type="button" class="btn btn-primary btn-sm" onclick="setQuickFilter('today')">今天</button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="setQuickFilter('week')">本周</button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="setQuickFilter('month')">本月</button>
                 </div>
             </div>
             <div class="filter-group">
@@ -56,59 +41,70 @@
                 <input type="date" id="endDate">
             </div>
             <div class="filter-group">
-                <button class="btn" onclick="search()">🔍 筛选</button>
-                <button class="btn" onclick="exportData()">📎 导出CSV</button>
+                <button class="btn btn-primary" onclick="search()">筛选</button>
+            </div>
+            <div class="filter-group">
+                <button class="btn btn-outline" onclick="exportData()">导出CSV</button>
             </div>
         </div>
 
-        <!-- 打卡操作区（示例简单表单，实际可扩展） -->
-        <div style="margin-bottom: 20px; padding: 15px; background: #f0f7ff; border-radius: 16px;">
-            <h4>快捷打卡</h4>
-            <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-                <input type="number" id="studentId" placeholder="学生ID" style="padding: 8px; width: 120px;">
+        <!-- 快捷打卡 -->
+        <div class="quick-action-bar">
+            <div class="item">
+                <label>学生ID</label>
+                <input type="number" id="studentId" placeholder="学生ID">
+            </div>
+            <div class="item">
+                <label>课程</label>
                 <select id="courseIdSelect"></select>
-                <input type="date" id="attDate" th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}">
-                <button class="btn btn-success" onclick="checkIn()">签到</button>
-                <button class="btn btn-warning" onclick="checkOut()">签退</button>
             </div>
+            <div class="item">
+                <label>日期</label>
+                <input type="date" id="attDate" th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}">
+            </div>
+            <button class="btn btn-success" onclick="checkIn()">签到</button>
+            <button class="btn btn-warning" onclick="checkOut()">签退</button>
         </div>
 
-        <!-- 考勤列表表格 -->
-        <table id="attTable">
-            <thead>
-            <tr><th data-sort="attendanceDate">日期</th><th data-sort="student.name">学生</th><th data-sort="course.name">课程</th><th data-sort="status">状态</th><th data-sort="seatPosition">座位</th><th>操作</th></tr>
-            </thead>
-            <tbody id="tableBody"><tr><td colspan="6">加载中...</td></tr></tbody>
-        </table>
+        <!-- 考勤表格 -->
+        <div class="table-wrapper">
+            <table id="attTable">
+                <thead>
+                <tr>
+                    <th data-sort="attendanceDate">日期</th>
+                    <th data-sort="student.name">学生</th>
+                    <th data-sort="course.name">课程</th>
+                    <th data-sort="status">状态</th>
+                    <th data-sort="seatPosition">座位</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody id="tableBody">
+                <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-secondary);">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
         <div class="pagination" id="pagination"></div>
     </div>
 </div>
 
 <script>
-    let currentPage = 0;
-    let pageSize = 10;
-    let sortBy = 'attendanceDate';
-    let direction = 'desc';
-    let courseId = '';
-    let startDate = '';
-    let endDate = '';
+    let currentPage = 0, pageSize = 10, sortBy = 'attendanceDate', direction = 'desc';
+    let courseId = '', startDate = '', endDate = '';
 
-    // 初始化加载课程下拉框
     fetch('/attendance/courses')
         .then(res => res.json())
         .then(result => {
             if (result.code === 200) {
-                const courseSelect = document.getElementById('courseFilter');
-                const courseSelect2 = document.getElementById('courseIdSelect');
+                const courseFilter = document.getElementById('courseFilter');
+                const courseSelect = document.getElementById('courseIdSelect');
                 result.data.forEach(course => {
-                    const option = document.createElement('option');
-                    option.value = course.id;
-                    option.text = course.name;
-                    courseSelect.appendChild(option);
-                    const option2 = document.createElement('option');
-                    option2.value = course.id;
-                    option2.text = course.name;
-                    courseSelect2.appendChild(option2);
+                    [courseFilter, courseSelect].forEach(sel => {
+                        const opt = document.createElement('option');
+                        opt.value = course.id;
+                        opt.text = course.name;
+                        sel.appendChild(opt);
+                    });
                 });
             }
         });
@@ -124,16 +120,15 @@
                 if (result.code === 200) {
                     renderTable(result.data.content);
                     renderPagination(result.data);
-                } else {
-                    alert(result.message);
-                }
-            });
+                } else { alert(result.message); }
+            })
+            .catch(err => console.error(err));
     }
 
     function renderTable(attendances) {
         const tbody = document.getElementById('tableBody');
         if (!attendances || attendances.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6">暂无数据</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-secondary);">暂无数据</td></tr>';
             return;
         }
         tbody.innerHTML = '';
@@ -142,15 +137,17 @@
             row.insertCell(0).innerText = a.attendanceDate;
             row.insertCell(1).innerText = a.student ? a.student.name : '';
             row.insertCell(2).innerText = a.course ? a.course.name : '';
-            let statusText = '';
-            if (a.status === 'present') statusText = '正常';
-            else if (a.status === 'late') statusText = '迟到';
-            else if (a.status === 'early_leave') statusText = '早退';
-            else if (a.status === 'absent') statusText = '缺勤';
-            else statusText = a.status;
-            row.insertCell(3).innerText = statusText;
+
+            let statusText = '', badgeClass = '';
+            if (a.status === 'present') { statusText = '正常'; badgeClass = 'badge-present'; }
+            else if (a.status === 'late') { statusText = '迟到'; badgeClass = 'badge-late'; }
+            else if (a.status === 'early_leave') { statusText = '早退'; badgeClass = 'badge-early'; }
+            else if (a.status === 'absent') { statusText = '缺勤'; badgeClass = 'badge-absent'; }
+            else { statusText = a.status; }
+            row.insertCell(3).innerHTML = `<span class="badge ${badgeClass}">${statusText}</span>`;
+
             row.insertCell(4).innerText = a.seatPosition || '';
-            row.insertCell(5).innerHTML = `<button class="btn btn-danger" onclick="deleteRecord(${a.id})">删除</button>`;
+            row.insertCell(5).innerHTML = `<button class="btn btn-danger btn-sm" onclick="deleteRecord(${a.id})">删除</button>`;
         });
     }
 
@@ -177,19 +174,17 @@
 
     function setQuickFilter(type) {
         const today = new Date();
-        const format = (d) => d.toISOString().slice(0,10);
-        if (type === 'today') {
-            startDate = endDate = format(today);
-        } else if (type === 'week') {
-            const first = new Date(today.setDate(today.getDate() - today.getDay()));
-            const last = new Date(today.setDate(today.getDate() + 6));
-            startDate = format(first);
-            endDate = format(last);
+        const fmt = d => d.toISOString().slice(0,10);
+        if (type === 'today') { startDate = endDate = fmt(today); }
+        else if (type === 'week') {
+            const first = new Date(today);
+            first.setDate(today.getDate() - today.getDay());
+            const last = new Date(first);
+            last.setDate(first.getDate() + 6);
+            startDate = fmt(first); endDate = fmt(last);
         } else if (type === 'month') {
-            const first = new Date(today.getFullYear(), today.getMonth(), 1);
-            const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-            startDate = format(first);
-            endDate = format(last);
+            startDate = fmt(new Date(today.getFullYear(), today.getMonth(), 1));
+            endDate = fmt(new Date(today.getFullYear(), today.getMonth() + 1, 0));
         }
         document.getElementById('startDate').value = startDate;
         document.getElementById('endDate').value = endDate;
@@ -198,55 +193,32 @@
 
     async function checkIn() {
         const studentId = document.getElementById('studentId').value;
-        const courseId = document.getElementById('courseIdSelect').value;
+        const courseIdVal = document.getElementById('courseIdSelect').value;
         const date = document.getElementById('attDate').value;
-        if (!studentId || !courseId || !date) {
-            alert('请填写完整信息');
-            return;
-        }
-        const response = await fetch(`/attendance/checkin?studentId=${studentId}&courseId=${courseId}&date=${date}`, {
-            method: 'POST'
-        });
-        const result = await response.json();
-        if (result.code === 200) {
-            alert('签到成功');
-            loadData();
-        } else {
-            alert(result.message);
-        }
+        if (!studentId || !courseIdVal || !date) { alert('请填写完整信息'); return; }
+        const resp = await fetch(`/attendance/checkin?studentId=${studentId}&courseId=${courseIdVal}&date=${date}`, { method: 'POST' });
+        const result = await resp.json();
+        alert(result.message || (result.code === 200 ? '签到成功' : result.message));
+        if (result.code === 200) loadData();
     }
 
     async function checkOut() {
         const studentId = document.getElementById('studentId').value;
-        const courseId = document.getElementById('courseIdSelect').value;
+        const courseIdVal = document.getElementById('courseIdSelect').value;
         const date = document.getElementById('attDate').value;
-        if (!studentId || !courseId || !date) {
-            alert('请填写完整信息');
-            return;
-        }
-        const response = await fetch(`/attendance/checkout?studentId=${studentId}&courseId=${courseId}&date=${date}`, {
-            method: 'POST'
-        });
-        const result = await response.json();
-        if (result.code === 200) {
-            alert('签退成功');
-            loadData();
-        } else {
-            alert(result.message);
-        }
+        if (!studentId || !courseIdVal || !date) { alert('请填写完整信息'); return; }
+        const resp = await fetch(`/attendance/checkout?studentId=${studentId}&courseId=${courseIdVal}&date=${date}`, { method: 'POST' });
+        const result = await resp.json();
+        alert(result.message || (result.code === 200 ? '签退成功' : result.message));
+        if (result.code === 200) loadData();
     }
 
     async function deleteRecord(id) {
-        if (confirm('确定删除该考勤记录吗？')) {
-            const response = await fetch(`/attendance/${id}`, { method: 'DELETE' });
-            const result = await response.json();
-            if (result.code === 200) {
-                alert('删除成功');
-                loadData();
-            } else {
-                alert(result.message);
-            }
-        }
+        if (!confirm('确定删除该考勤记录吗？')) return;
+        const resp = await fetch(`/attendance/${id}`, { method: 'DELETE' });
+        const result = await resp.json();
+        if (result.code === 200) { alert('删除成功'); loadData(); }
+        else alert(result.message);
     }
 
     function exportData() {
@@ -258,7 +230,6 @@
         window.location.href = url + params.join('&');
     }
 
-    // 排序功能
     document.querySelectorAll('th[data-sort]').forEach(th => {
         th.addEventListener('click', () => {
             const field = th.getAttribute('data-sort');

@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:8080/auth';
+const API_BASE = '/auth';
 
 // 注册处理
 const registerForm = document.getElementById('registerForm');

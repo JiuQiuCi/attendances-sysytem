@@ -43,6 +43,6 @@ public class PageController {
 
     @GetMapping("/attendance/list-page")
     public String attendanceListPage() {
-        return "attendance-list";
+        return "attendance_list";
     }
 }
