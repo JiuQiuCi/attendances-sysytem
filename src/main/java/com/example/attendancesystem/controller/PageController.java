@@ -40,4 +40,9 @@ public class PageController {
     public String studentListPage() {
         return "student-list";
     }
+
+    @GetMapping("/attendance/list-page")
+    public String attendanceListPage() {
+        return "attendance-list";
+    }
 }

@@ -4,6 +4,8 @@ import com.example.attendancesystem.entity.Student;
 import com.example.attendancesystem.repository.StudentRepository;
 import com.example.attendancesystem.Service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -18,10 +20,14 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public Student addStudent(Student student) {
-        // 业务校验：学号不能为空
         if (student.getStudentId() == null || student.getStudentId().isEmpty()) {
             throw new IllegalArgumentException("学号不能为空");
         }
+        return studentRepository.save(student);
+    }
+
+    @Override
+    public Student updateStudent(Student student) {
         return studentRepository.save(student);
     }
 
@@ -44,12 +50,25 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
-    public List<Student> getAllStudents() {
-        return studentRepository.findAll();
+    public Page<Student> getAllStudents(Pageable pageable) {
+        return studentRepository.findAll(pageable);
+    }
+
+    @Override
+    public Page<Student> searchStudents(String keyword, Pageable pageable) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return studentRepository.findAll(pageable);
+        }
+        return studentRepository.searchByKeyword(keyword.trim(), pageable);
     }
 
     @Override
     public void deleteStudent(Integer id) {
         studentRepository.deleteById(id);
+    }
+
+    @Override
+    public void deleteStudents(List<Integer> ids) {
+        studentRepository.deleteAllById(ids);
     }
 }

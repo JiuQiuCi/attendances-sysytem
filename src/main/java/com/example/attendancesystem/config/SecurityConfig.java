@@ -14,20 +14,25 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf().disable()
-                // 关键：授权请求配置
-                .authorizeRequests(authorize -> authorize
-                        // 1. 明确放行所有公共页面（Thymeleaf模板路由）
-                        .antMatchers("/", "/register", "/login", "/index").permitAll()
-                        // 2. 放行所有静态资源（CSS, JS, 图片等）
-                        .antMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
-                        // 3. 放行所有认证相关的API接口
-                        .antMatchers("/auth/**").permitAll()
-                        // 4. 其他任何请求都需要认证
-                        .anyRequest().authenticated()
-                )
-                // 5. 禁用HTTP Basic认证（避免弹出浏览器登录框）
+                .authorizeRequests()
+                // 放行所有静态资源、登录注册、认证API
+                .antMatchers(
+                        "/", "/register", "/login", "/index",
+                        "/css/**", "/js/**", "/favicon.ico",
+                        "/auth/**"
+                ).permitAll()
+                // 放行学生管理模块（页面 + API）
+                .antMatchers("/student/**").permitAll()
+                // 放行考勤管理模块
+                .antMatchers("/attendance/**").permitAll()
+                // 放行课程管理模块
+                .antMatchers("/course/**").permitAll()
+                // 放行数据报表模块
+                .antMatchers("/report/**").permitAll()
+                // 其他请求需要认证
+                .anyRequest().authenticated()
+                .and()
                 .httpBasic().disable()
-                // 6. 禁用默认的表单登录页
                 .formLogin().disable();
 
         return http.build();

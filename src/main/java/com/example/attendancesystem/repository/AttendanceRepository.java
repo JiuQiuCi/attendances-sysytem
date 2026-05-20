@@ -8,13 +8,14 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface AttendanceRepository extends JpaRepository<Attendance, Integer>, JpaSpecificationExecutor<Attendance> {
 
-    // ========== 原有方法（保留） ==========
     List<Attendance> findByStudentId(Integer studentId);
     List<Attendance> findByCourseId(Integer courseId);
     List<Attendance> findByStudentIdAndAttendanceDateBetween(Integer studentId, LocalDate start, LocalDate end);
@@ -22,8 +23,6 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Integer>
     @Query("SELECT a FROM Attendance a WHERE a.course.id = :courseId AND a.attendanceDate = :date")
     List<Attendance> findAttendancesByCourseAndDate(@Param("courseId") Integer courseId, @Param("date") LocalDate date);
 
-    // ========== 新增分页方法 ==========
-    Page<Attendance> findAll(Pageable pageable);
-    Page<Attendance> findByStudentId(Integer studentId, Pageable pageable);
-    Page<Attendance> findByCourseId(Integer courseId, Pageable pageable);
+    // 新增：根据学生、课程、日期查找唯一考勤记录
+    Optional<Attendance> findByStudentIdAndCourseIdAndAttendanceDate(Integer studentId, Integer courseId, LocalDate date);
 }
