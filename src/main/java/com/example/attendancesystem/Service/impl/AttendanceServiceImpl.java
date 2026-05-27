@@ -22,6 +22,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @Transactional
@@ -68,6 +69,34 @@ public class AttendanceServiceImpl implements AttendanceService {
         attendance.setAttendanceDate(date);
         attendance.setStatus(status);
         attendance.setCreatedAt(LocalDateTime.now());
+        return attendanceRepository.save(attendance);
+    }
+
+    // 手动标记考勤状态
+    @Override
+    public Attendance markAttendance(Integer studentId, Integer courseId, LocalDate date, String status) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new IllegalArgumentException("学生不存在"));
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("课程不存在"));
+
+        if (!Set.of("present", "absent", "late", "early_leave").contains(status)) {
+            throw new IllegalArgumentException("无效状态: " + status);
+        }
+
+        // Upsert: if record exists for this student+course+date, update it; otherwise create
+        Attendance attendance = attendanceRepository
+                .findByStudentIdAndCourseIdAndAttendanceDate(studentId, courseId, date)
+                .orElse(null);
+
+        if (attendance == null) {
+            attendance = new Attendance();
+            attendance.setStudent(student);
+            attendance.setCourse(course);
+            attendance.setAttendanceDate(date);
+            attendance.setCreatedAt(LocalDateTime.now());
+        }
+        attendance.setStatus(status);
         return attendanceRepository.save(attendance);
     }
 

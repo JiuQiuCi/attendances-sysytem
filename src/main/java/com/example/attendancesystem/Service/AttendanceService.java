@@ -14,6 +14,9 @@ public interface AttendanceService {
     Attendance checkIn(Integer studentId, Integer courseId, LocalDate date);
     Attendance checkOut(Integer studentId, Integer courseId, LocalDate date);
 
+    // 手动标记考勤状态（present/absent/late/early_leave）
+    Attendance markAttendance(Integer studentId, Integer courseId, LocalDate date, String status);
+
     // 原有方法
     Attendance saveAttendance(Attendance attendance);
     Optional<Attendance> getAttendanceById(Integer id);

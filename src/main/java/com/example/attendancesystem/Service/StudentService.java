@@ -16,4 +16,6 @@ public interface StudentService {
     Page<Student> searchStudents(String keyword, Pageable pageable);
     void deleteStudent(Integer id);
     void deleteStudents(List<Integer> ids);
+    List<Student> quickSearch(String keyword);
+    List<Student> getAllStudents();
 }

@@ -7,6 +7,102 @@
     <link rel="stylesheet" href="/css/style.css">
     <style>
         .page-wrap { max-width: 1400px; margin: 30px auto; padding: 20px; }
+
+        /* Upload section */
+        .upload-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-lg);
+            background: var(--bg);
+            display: none;
+            transition: all var(--transition);
+        }
+        .upload-section.show { display: block; }
+        .upload-zone {
+            text-align: center;
+            padding: 30px 20px;
+            border-radius: var(--radius);
+            background: var(--bg-white);
+            cursor: pointer;
+            transition: all var(--transition);
+            border: 2px dashed var(--primary);
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            background: var(--primary-light);
+            border-color: var(--primary-hover);
+        }
+        .upload-zone .upload-icon { font-size: 2.5rem; margin-bottom: 8px; }
+        .upload-zone .upload-hint { color: var(--text-secondary); font-size: 0.85rem; }
+        .upload-zone input[type=file] { display: none; }
+
+        /* Progress bar */
+        .progress-wrap {
+            display: none;
+            margin-top: 14px;
+        }
+        .progress-wrap.show { display: block; }
+        .progress-bar-outer {
+            height: 10px;
+            background: var(--border);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+        }
+        .progress-bar-inner {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary), #7C3AED);
+            border-radius: var(--radius-full);
+            transition: width 0.3s ease;
+        }
+        .progress-text {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 6px;
+        }
+
+        /* Import result */
+        .import-result {
+            display: none;
+            margin-top: 16px;
+            padding: 16px;
+            border-radius: var(--radius);
+            background: var(--bg-white);
+            border: 1px solid var(--border);
+        }
+        .import-result.show { display: block; }
+        .import-summary {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .import-summary span { font-weight: 700; }
+        .import-summary .suc { color: var(--success); }
+        .import-summary .fail { color: var(--danger); }
+        .error-table {
+            width: 100%;
+            font-size: 0.82rem;
+            margin-top: 10px;
+        }
+        .error-table th {
+            font-size: 0.75rem;
+            padding: 8px 10px;
+        }
+        .error-table td {
+            padding: 6px 10px;
+            word-break: break-all;
+        }
+        .collapse-header {
+            cursor: pointer;
+            font-weight: 700;
+            color: var(--danger);
+            font-size: 0.88rem;
+            margin-top: 10px;
+            user-select: none;
+        }
     </style>
 </head>
 <body>
@@ -43,16 +139,22 @@
             <div class="filter-group">
                 <button class="btn btn-primary" onclick="search()">筛选</button>
             </div>
-            <div class="filter-group">
-                <button class="btn btn-outline" onclick="exportData()">导出CSV</button>
+            <div class="filter-group" style="flex-direction:row;align-items:center;gap:8px;">
+                <button class="btn btn-primary" onclick="exportData()">导出Excel</button>
+                <button class="btn btn-success" onclick="toggleUpload()">导入Excel</button>
             </div>
         </div>
 
         <!-- 快捷打卡 -->
         <div class="quick-action-bar">
-            <div class="item">
-                <label>学生ID</label>
-                <input type="number" id="studentId" placeholder="学生ID">
+            <div class="item" style="position:relative;">
+                <label>学生</label>
+                <input type="text" id="studentSearch" placeholder="输入姓名或学号搜索..." autocomplete="off"
+                       oninput="searchStudent()" onfocus="searchStudent()">
+                <div id="studentDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:999;
+                    background:var(--bg-white);border:1px solid var(--border);border-radius:var(--radius);
+                    max-height:200px;overflow-y:auto;box-shadow:var(--shadow-lg);"></div>
+                <input type="hidden" id="selectedStudentId" value="">
             </div>
             <div class="item">
                 <label>课程</label>
@@ -62,8 +164,47 @@
                 <label>日期</label>
                 <input type="date" id="attDate" th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}">
             </div>
-            <button class="btn btn-success" onclick="checkIn()">签到</button>
-            <button class="btn btn-warning" onclick="checkOut()">签退</button>
+            <button class="btn btn-success" onclick="markStatus('present')">签到</button>
+            <button class="btn btn-danger" onclick="markStatus('absent')">缺勤</button>
+            <button class="btn btn-warning" onclick="markStatus('late')">迟到</button>
+            <button class="btn" style="background:var(--info);color:#fff;" onclick="markStatus('early_leave')">早退</button>
+        </div>
+
+        <!-- 上传区域 -->
+        <div class="upload-section" id="uploadSection">
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon">📁</div>
+                <div><strong>点击选择文件</strong> 或拖拽 Excel 文件到此处</div>
+                <div class="upload-hint">
+                    支持两种格式：<br>
+                    ① 学生名单：学号、姓名、性别、班级<br>
+                    ② 考勤记录：studentId、courseName、attendanceDate、status<br>
+                    支持 .xlsx / .xls 格式，文件大小不超过 10MB
+                </div>
+                <input type="file" id="fileInput" accept=".xlsx,.xls">
+            </div>
+            <div class="progress-wrap" id="progressWrap">
+                <div class="progress-bar-outer">
+                    <div class="progress-bar-inner" id="progressBar"></div>
+                </div>
+                <div class="progress-text" id="progressText">上传中 0%</div>
+            </div>
+            <div class="import-result" id="importResult">
+                <div class="import-summary">
+                    <span>总行数: <span id="totalRows">0</span></span>
+                    <span class="suc">成功: <span id="successCount">0</span></span>
+                    <span class="fail">失败: <span id="failureCount">0</span></span>
+                </div>
+                <div class="collapse-header" id="errorToggle" style="display:none;" onclick="toggleErrors()">
+                    ⚠ 查看导入失败详情 ▼
+                </div>
+                <div class="table-wrapper" id="errorTableWrap" style="display:none;margin-top:8px;">
+                    <table class="error-table">
+                        <thead><tr><th>行号</th><th>字段</th><th>错误信息</th></tr></thead>
+                        <tbody id="errorTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <!-- 考勤表格 -->
@@ -191,27 +332,58 @@
         search();
     }
 
-    async function checkIn() {
-        const studentId = document.getElementById('studentId').value;
+    let searchTimer = null;
+    function searchStudent() {
+        clearTimeout(searchTimer);
+        const q = document.getElementById('studentSearch').value.trim();
+        const dropdown = document.getElementById('studentDropdown');
+        if (!q) { dropdown.style.display = 'none'; return; }
+        searchTimer = setTimeout(async () => {
+            try {
+                const resp = await fetch(`/student/quick-search?q=${encodeURIComponent(q)}`);
+                const result = await resp.json();
+                if (result.code === 200 && result.data && result.data.length > 0) {
+                    dropdown.innerHTML = result.data.map(s =>
+                        `<div style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border-light);"
+                              onmousedown="selectStudent(${s.id},'${s.name.replace(/'/g,"\\'")}','${(s.studentId||'').replace(/'/g,"\\'")}')">
+                            ${s.name} <span style="color:var(--text-muted);font-size:0.8rem;">${s.studentId||''}</span>
+                        </div>`
+                    ).join('');
+                    dropdown.style.display = 'block';
+                } else {
+                    dropdown.innerHTML = '<div style="padding:8px 12px;color:var(--text-muted);font-size:0.85rem;">无匹配学生</div>';
+                    dropdown.style.display = 'block';
+                }
+            } catch(e) { console.error(e); }
+        }, 250);
+    }
+
+    function selectStudent(id, name, sid) {
+        document.getElementById('studentSearch').value = name + ' (' + sid + ')';
+        document.getElementById('selectedStudentId').value = id;
+        document.getElementById('studentDropdown').style.display = 'none';
+    }
+
+    async function markStatus(status) {
+        const studentId = document.getElementById('selectedStudentId').value;
         const courseIdVal = document.getElementById('courseIdSelect').value;
         const date = document.getElementById('attDate').value;
-        if (!studentId || !courseIdVal || !date) { alert('请填写完整信息'); return; }
-        const resp = await fetch(`/attendance/checkin?studentId=${studentId}&courseId=${courseIdVal}&date=${date}`, { method: 'POST' });
+        if (!studentId) { alert('请先搜索并选择学生'); return; }
+        if (!courseIdVal || !date) { alert('请选择课程和日期'); return; }
+        const statusNames = {present:'签到',absent:'缺勤',late:'迟到',early_leave:'早退'};
+        const resp = await fetch(`/attendance/mark?studentId=${studentId}&courseId=${courseIdVal}&date=${date}&status=${status}`, { method: 'POST' });
         const result = await resp.json();
-        alert(result.message || (result.code === 200 ? '签到成功' : result.message));
+        alert(result.message || (result.code === 200 ? '已标记: ' + (statusNames[status]||status) : result.message));
         if (result.code === 200) loadData();
     }
 
-    async function checkOut() {
-        const studentId = document.getElementById('studentId').value;
-        const courseIdVal = document.getElementById('courseIdSelect').value;
-        const date = document.getElementById('attDate').value;
-        if (!studentId || !courseIdVal || !date) { alert('请填写完整信息'); return; }
-        const resp = await fetch(`/attendance/checkout?studentId=${studentId}&courseId=${courseIdVal}&date=${date}`, { method: 'POST' });
-        const result = await resp.json();
-        alert(result.message || (result.code === 200 ? '签退成功' : result.message));
-        if (result.code === 200) loadData();
-    }
+    // Close dropdown on outside click
+    document.addEventListener('click', function(e) {
+        const wrap = document.querySelector('.quick-action-bar .item');
+        if (wrap && !wrap.contains(e.target)) {
+            document.getElementById('studentDropdown').style.display = 'none';
+        }
+    });
 
     async function deleteRecord(id) {
         if (!confirm('确定删除该考勤记录吗？')) return;
@@ -238,6 +410,138 @@
             loadData();
         });
     });
+
+    // ===== File Upload with Progress =====
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+    const uploadSection = document.getElementById('uploadSection');
+    const progressWrap = document.getElementById('progressWrap');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const importResult = document.getElementById('importResult');
+
+    function toggleUpload() {
+        uploadSection.classList.toggle('show');
+        resetUploadUI();
+    }
+
+    uploadZone.addEventListener('click', () => fileInput.click());
+
+    uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.classList.add('dragover');
+    });
+    uploadZone.addEventListener('dragleave', () => {
+        uploadZone.classList.remove('dragover');
+    });
+    uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            startUpload(e.dataTransfer.files[0]);
+        }
+    });
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            startUpload(fileInput.files[0]);
+        }
+    });
+
+    function startUpload(file) {
+        // Validate before upload
+        const allowedExtensions = ['xlsx', 'xls'];
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!allowedExtensions.includes(ext)) {
+            alert('不支持的文件格式: .' + ext + '，仅支持 .xlsx 和 .xls');
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            alert('文件大小 ' + (file.size / 1024 / 1024).toFixed(1) + 'MB 超过 10MB 限制');
+            return;
+        }
+
+        resetUploadUI();
+        progressWrap.classList.add('show');
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/file/upload');
+
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+                const pct = Math.round((e.loaded / e.total) * 100);
+                progressBar.style.width = pct + '%';
+                progressText.textContent = '上传中 ' + pct + '%';
+            }
+        });
+
+        xhr.addEventListener('load', () => {
+            progressText.textContent = '处理中...';
+            setTimeout(() => {
+                progressWrap.classList.remove('show');
+                try {
+                    const result = JSON.parse(xhr.responseText);
+                    showImportResult(result);
+                } catch (e) {
+                    alert('解析响应失败');
+                }
+            }, 400);
+        });
+
+        xhr.addEventListener('error', () => {
+            progressWrap.classList.remove('show');
+            alert('上传失败，请检查网络连接');
+        });
+
+        xhr.send(formData);
+    }
+
+    function showImportResult(resp) {
+        importResult.classList.add('show');
+        if (resp.code !== 200 || !resp.data) {
+            importResult.innerHTML = '<span style="color:var(--danger);">导入失败: ' + (resp.message || '未知错误') + '</span>';
+            return;
+        }
+        const d = resp.data;
+        const typeLabel = d.importType === 'student' ? '学生名单' : '考勤记录';
+        document.getElementById('totalRows').textContent = d.totalRows;
+        document.getElementById('successCount').textContent = d.successCount + ' (' + typeLabel + ')';
+        document.getElementById('failureCount').textContent = d.failureCount;
+
+        const errorToggle = document.getElementById('errorToggle');
+        const errorBody = document.getElementById('errorTableBody');
+        if (d.errors && d.errors.length > 0) {
+            errorToggle.style.display = 'block';
+            errorBody.innerHTML = '';
+            d.errors.forEach(err => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${err.row}</td><td>${err.field || '-'}</td><td>${err.message}</td>`;
+                errorBody.appendChild(tr);
+            });
+        } else {
+            errorToggle.style.display = 'none';
+        }
+
+        // Reload table if any succeeded
+        if (d.successCount > 0) loadData();
+    }
+
+    function toggleErrors() {
+        const wrap = document.getElementById('errorTableWrap');
+        wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function resetUploadUI() {
+        progressBar.style.width = '0%';
+        progressText.textContent = '上传中 0%';
+        progressWrap.classList.remove('show');
+        importResult.classList.remove('show');
+        fileInput.value = '';
+    }
 
     loadData();
 </script>

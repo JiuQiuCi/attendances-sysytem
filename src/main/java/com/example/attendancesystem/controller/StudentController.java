@@ -3,6 +3,8 @@ package com.example.attendancesystem.controller;
 import com.example.attendancesystem.common.Result;
 import com.example.attendancesystem.entity.Student;
 import com.example.attendancesystem.Service.StudentService;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -10,6 +12,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @RestController
@@ -70,6 +75,71 @@ public class StudentController {
     public Result<String> deleteStudent(@PathVariable Integer id) {
         studentService.deleteStudent(id);
         return Result.success("删除成功");
+    }
+
+    // 快速搜索（用于下拉选择）
+    @GetMapping("/quick-search")
+    public Result<List<Student>> quickSearch(@RequestParam String q) {
+        return Result.success(studentService.quickSearch(q));
+    }
+
+    // 导出 Excel
+    @GetMapping("/export")
+    public void exportStudents(HttpServletResponse response) throws IOException {
+        List<Student> list = studentService.getAllStudents();
+
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("学生名单");
+
+        CellStyle headerStyle = workbook.createCellStyle();
+        Font headerFont = workbook.createFont();
+        headerFont.setBold(true);
+        headerFont.setFontHeightInPoints((short) 11);
+        headerStyle.setFont(headerFont);
+        headerStyle.setFillForegroundColor(IndexedColors.PALE_BLUE.getIndex());
+        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        headerStyle.setBorderBottom(BorderStyle.THIN);
+        headerStyle.setBorderTop(BorderStyle.THIN);
+        headerStyle.setBorderLeft(BorderStyle.THIN);
+        headerStyle.setBorderRight(BorderStyle.THIN);
+
+        CellStyle dateStyle = workbook.createCellStyle();
+        dateStyle.setDataFormat(workbook.createDataFormat().getFormat("yyyy-MM-dd"));
+
+        Row headerRow = sheet.createRow(0);
+        String[] headers = {"ID", "学号", "姓名", "性别", "出生日期", "联系方式", "班级"};
+        for (int i = 0; i < headers.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        for (int i = 0; i < list.size(); i++) {
+            Student s = list.get(i);
+            Row row = sheet.createRow(i + 1);
+            row.createCell(0).setCellValue(s.getId());
+            row.createCell(1).setCellValue(s.getStudentId() != null ? s.getStudentId() : "");
+            row.createCell(2).setCellValue(s.getName() != null ? s.getName() : "");
+            row.createCell(3).setCellValue(s.getGender() != null ? s.getGender() : "");
+            if (s.getBirthDate() != null) {
+                Cell dateCell = row.createCell(4);
+                dateCell.setCellValue(s.getBirthDate());
+                dateCell.setCellStyle(dateStyle);
+            } else {
+                row.createCell(4).setCellValue("");
+            }
+            row.createCell(5).setCellValue(s.getPhone() != null ? s.getPhone() : "");
+            row.createCell(6).setCellValue(s.getClassName() != null ? s.getClassName() : "");
+        }
+
+        for (int i = 0; i < headers.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=students.xlsx");
+        workbook.write(response.getOutputStream());
+        workbook.close();
     }
 
     // 批量删除

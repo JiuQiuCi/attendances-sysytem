@@ -5,7 +5,9 @@ import com.example.attendancesystem.repository.StudentRepository;
 import com.example.attendancesystem.Service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -70,5 +72,18 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public void deleteStudents(List<Integer> ids) {
         studentRepository.deleteAllById(ids);
+    }
+
+    @Override
+    public List<Student> quickSearch(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return studentRepository.findAll(PageRequest.of(0, 10, Sort.by("name"))).getContent();
+        }
+        return studentRepository.searchByKeyword(keyword.trim(), PageRequest.of(0, 10, Sort.by("name"))).getContent();
+    }
+
+    @Override
+    public List<Student> getAllStudents() {
+        return studentRepository.findAll(Sort.by("id"));
     }
 }

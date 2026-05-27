@@ -5,6 +5,8 @@ import com.example.attendancesystem.entity.Attendance;
 import com.example.attendancesystem.entity.Course;
 import com.example.attendancesystem.repository.CourseRepository;
 import com.example.attendancesystem.Service.AttendanceService;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -15,9 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @RestController
@@ -60,6 +60,22 @@ public class AttendanceController {
         }
     }
 
+    // 手动标记考勤状态
+    @PostMapping("/mark")
+    public Result<Attendance> markAttendance(@RequestParam Integer studentId,
+                                             @RequestParam Integer courseId,
+                                             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+                                             @RequestParam String status) {
+        try {
+            Attendance attendance = attendanceService.markAttendance(studentId, courseId, date, status);
+            return Result.success(attendance);
+        } catch (IllegalArgumentException e) {
+            return Result.error(400, e.getMessage());
+        } catch (Exception e) {
+            return Result.error(500, "标记失败：" + e.getMessage());
+        }
+    }
+
     // 分页+筛选考勤记录
     @GetMapping("/list")
     public Result<Page<Attendance>> listAttendances(
@@ -82,7 +98,7 @@ public class AttendanceController {
         return Result.success(courseRepository.findAll());
     }
 
-    // 导出 CSV
+    // 导出 Excel
     @GetMapping("/export")
     public void exportAttendances(
             @RequestParam(required = false) Integer courseId,
@@ -90,22 +106,76 @@ public class AttendanceController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             HttpServletResponse response) throws IOException {
         List<Attendance> list = attendanceService.exportAttendances(courseId, startDate, endDate);
-        response.setContentType("text/csv;charset=UTF-8");
-        response.setHeader("Content-Disposition", "attachment; filename=attendances.csv");
-        PrintWriter writer = response.getWriter();
-        writer.println("\uFEFFID,学生姓名,学号,课程名称,考勤日期,状态,座位位置,签到时间");
-        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        for (Attendance a : list) {
-            String studentName = a.getStudent() != null ? a.getStudent().getName() : "";
-            String studentId = a.getStudent() != null ? a.getStudent().getStudentId() : "";
-            String courseName = a.getCourse() != null ? a.getCourse().getName() : "";
-            String date = a.getAttendanceDate().format(dateFormatter);
-            String status = a.getStatus();
-            String seat = a.getSeatPosition() == null ? "" : a.getSeatPosition();
-            String createdAt = a.getCreatedAt() == null ? "" : a.getCreatedAt().toString();
-            writer.printf("%d,%s,%s,%s,%s,%s,%s,%s%n",
-                    a.getId(), studentName, studentId, courseName, date, status, seat, createdAt);
+
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("考勤记录");
+
+        CellStyle headerStyle = workbook.createCellStyle();
+        Font headerFont = workbook.createFont();
+        headerFont.setBold(true);
+        headerFont.setFontHeightInPoints((short) 11);
+        headerStyle.setFont(headerFont);
+        headerStyle.setFillForegroundColor(IndexedColors.PALE_BLUE.getIndex());
+        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        headerStyle.setBorderBottom(BorderStyle.THIN);
+        headerStyle.setBorderTop(BorderStyle.THIN);
+        headerStyle.setBorderLeft(BorderStyle.THIN);
+        headerStyle.setBorderRight(BorderStyle.THIN);
+
+        CellStyle dateStyle = workbook.createCellStyle();
+        dateStyle.setDataFormat(workbook.createDataFormat().getFormat("yyyy-MM-dd"));
+
+        Row headerRow = sheet.createRow(0);
+        String[] headers = {"ID", "学生姓名", "学号", "课程名称", "考勤日期", "状态", "座位位置", "签到时间"};
+        for (int i = 0; i < headers.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
         }
-        writer.flush();
+
+        for (int i = 0; i < list.size(); i++) {
+            Attendance a = list.get(i);
+            Row row = sheet.createRow(i + 1);
+
+            row.createCell(0).setCellValue(a.getId());
+            row.createCell(1).setCellValue(a.getStudent() != null ? a.getStudent().getName() : "");
+            row.createCell(2).setCellValue(a.getStudent() != null ? a.getStudent().getStudentId() : "");
+            row.createCell(3).setCellValue(a.getCourse() != null ? a.getCourse().getName() : "");
+
+            Cell dateCell = row.createCell(4);
+            dateCell.setCellValue(a.getAttendanceDate());
+            dateCell.setCellStyle(dateStyle);
+
+            String statusLabel = a.getStatus();
+            switch (a.getStatus()) {
+                case "present": statusLabel = "正常"; break;
+                case "absent": statusLabel = "缺勤"; break;
+                case "late": statusLabel = "迟到"; break;
+                case "early_leave": statusLabel = "早退"; break;
+            }
+            row.createCell(5).setCellValue(statusLabel);
+            row.createCell(6).setCellValue(a.getSeatPosition() != null ? a.getSeatPosition() : "");
+            row.createCell(7).setCellValue(a.getCreatedAt() != null ? a.getCreatedAt().toString() : "");
+        }
+
+        for (int i = 0; i < headers.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=attendances.xlsx");
+        workbook.write(response.getOutputStream());
+        workbook.close();
+    }
+
+    // 删除考勤记录
+    @DeleteMapping("/{id}")
+    public Result<Void> deleteAttendance(@PathVariable Integer id) {
+        try {
+            attendanceService.deleteAttendance(id);
+            return Result.success(null);
+        } catch (Exception e) {
+            return Result.error(500, "删除失败：" + e.getMessage());
+        }
     }
 }

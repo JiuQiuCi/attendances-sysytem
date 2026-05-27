@@ -35,6 +35,13 @@
     --transition: 0.2s ease;
     --transition-slow: 0.3s ease;
     --font: 'Segoe UI', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+    /* ===== 背景图片设置（在此处修改参数） ===== */
+    --bg-image: url('/images/campus-1.png');  /* 背景图片路径：campus-1~4 */
+    --bg-blur: 3px;                /* 模糊程度，越大越模糊（建议 2~12px） */
+    --bg-scale: 1.15;              /* 图片放大系数，避免模糊边缘出现白边 */
+    --bg-brightness: 0.9;          /* 图片亮度，0=全黑 1=原图 >1=增亮 */
+    --bg-overlay-color: rgba(255, 255, 255, 0.78);  /* 遮罩层：rgba(R,G,B,透明度) */
 }
 
 /* ===== Reset & Base ===== */
@@ -44,10 +51,33 @@ html { font-size: 16px; -webkit-font-smoothing: antialiased; }
 
 body {
     font-family: var(--font);
-    background: var(--bg);
     color: var(--text);
     min-height: 100vh;
     line-height: 1.6;
+    position: relative;
+}
+
+/* 虚化背景图层 */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background: var(--bg-image) center / cover no-repeat;
+    filter: blur(var(--bg-blur)) brightness(var(--bg-brightness));
+    transform: scale(var(--bg-scale));
+}
+
+/* 景深遮罩层（中心亮、边缘暗，营造景深感） */
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(ellipse at 50% 50%,
+        rgba(255,255,255,0.88) 0%,
+        rgba(255,255,255,0.72) 55%,
+        rgba(0,0,0,0.18) 100%);
 }
 
 a { color: var(--primary); text-decoration: none; transition: color var(--transition); }
@@ -58,8 +88,26 @@ body.auth-page {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
+}
+
+/* 登录/注册页的景深遮罩（紫色调） */
+body.auth-page::after {
+    background: radial-gradient(ellipse at 50% 50%,
+        rgba(102,126,234,0.35) 0%,
+        rgba(102,126,234,0.5) 55%,
+        rgba(0,0,0,0.4) 100%);
+}
+
+/* 登录页：使用 campus-3 背景图 */
+body.auth-login-page {
+    --bg-image: url('/images/campus-3.jpeg');
+}
+
+/* 注册页：卡片右移 */
+body.auth-register-page {
+    justify-content: flex-end;
+    padding-right: 8%;
 }
 
 /* ===== Glass Card (Login/Register) ===== */
@@ -214,7 +262,7 @@ select.form-control {
 }
 .btn-secondary:hover {
     background: var(--border);
-}
+}v
 
 .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
 .btn-lg { padding: 14px 32px; font-size: 1.05rem; }

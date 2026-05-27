@@ -18,7 +18,7 @@ public class SecurityConfig {
                 // 放行所有静态资源、登录注册、认证API
                 .antMatchers(
                         "/", "/register", "/login", "/index",
-                        "/css/**", "/js/**", "/favicon.ico",
+                        "/css/**", "/js/**", "/images/**", "/favicon.ico", "/file/**",
                         "/auth/**"
                 ).permitAll()
                 // 放行学生管理模块（页面 + API）
