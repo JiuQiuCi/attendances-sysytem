@@ -2,6 +2,9 @@ package com.example.attendancesystem.controller;
 
 import com.example.attendancesystem.Service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -44,5 +47,34 @@ public class PageController {
     @GetMapping("/attendance/list-page")
     public String attendanceListPage() {
         return "attendance_list";
+    }
+
+    @GetMapping("/course/list-page")
+    public String courseListPage() {
+        return "course-list";
+    }
+
+    @GetMapping("/course/form")
+    public String courseForm(@RequestParam(required = false) Integer id, Model model) {
+        if (id != null) {
+            // Course will be loaded via JS on the form page
+            model.addAttribute("courseId", id);
+        }
+        return "course-form";
+    }
+
+    @GetMapping("/leave/list-page")
+    public String leaveListPage() {
+        return "leave-list";
+    }
+
+    @GetMapping("/")
+    public String root() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated()
+                && !(auth instanceof AnonymousAuthenticationToken)) {
+            return "redirect:/index";
+        }
+        return "redirect:/login";
     }
 }

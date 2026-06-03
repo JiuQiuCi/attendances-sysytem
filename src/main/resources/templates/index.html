@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>西财学生考勤系统 - 首页</title>
+    <title>西南财经大学 · 学生考勤系统</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
     <!-- 头部 -->
     <div class="dash-header">
         <div class="dash-brand">
-            <div class="dash-logo">西财</div>
+            <img class="emblem-logo" src="/images/logo.png" alt="西南财经大学">
             <span class="dash-school">西南财经大学 · 学生考勤系统</span>
         </div>
         <div class="dash-user">
@@ -23,27 +23,37 @@
     <!-- 欢迎卡片 -->
     <div class="welcome-card">
         <h2>欢迎，<span id="welcomeName"></span>！</h2>
-        <p>欢迎使用西南财经大学学生考勤管理系统。请选择您需要的功能模块。</p>
+        <p>西南财经大学学生考勤管理系统 — 严谨治学，智慧管理</p>
     </div>
 
     <!-- 功能菜单 -->
     <div class="menu-grid">
-        <div class="menu-card" onclick="location.href='/student/list-page'">
+        <!-- 教师专属：学生管理 -->
+        <div class="menu-card" data-role="teacher" onclick="location.href='/student/list-page'" style="display:none">
             <span class="menu-icon">👨‍🎓</span>
             <div class="menu-title">学生管理</div>
             <div class="menu-desc">管理学生基本信息（增删改查、批量删除、搜索排序）</div>
         </div>
+        <!-- 所有人：考勤管理 -->
         <div class="menu-card" onclick="location.href='/attendance/list-page'">
             <span class="menu-icon">📅</span>
             <div class="menu-title">考勤管理</div>
             <div class="menu-desc">记录每日出勤，查看统计报表</div>
         </div>
-        <div class="menu-card" onclick="location.href='/course/list-page'">
+        <!-- 教师专属：课程管理 -->
+        <div class="menu-card" data-role="teacher" onclick="location.href='/course/list-page'" style="display:none">
             <span class="menu-icon">📚</span>
             <div class="menu-title">课程管理</div>
             <div class="menu-desc">维护课程信息，分配授课教师</div>
         </div>
-        <div class="menu-card" onclick="location.href='/report'">
+        <!-- 所有人：请假管理 -->
+        <div class="menu-card" onclick="location.href='/leave/list-page'">
+            <span class="menu-icon">📝</span>
+            <div class="menu-title">请假管理</div>
+            <div class="menu-desc">提交请假申请，查看审批状态</div>
+        </div>
+        <!-- 教师专属：数据报表 -->
+        <div class="menu-card" data-role="teacher" onclick="location.href='/report'" style="display:none">
             <span class="menu-icon">📊</span>
             <div class="menu-title">数据报表</div>
             <div class="menu-desc">出勤率分析，班级对比图表</div>
@@ -55,19 +65,30 @@
     </div>
 </div>
 
+<script src="/js/auth-check.js"></script>
 <script>
-    const user = JSON.parse(sessionStorage.getItem('user') || '{}');
-    if (!user.username) {
-        window.location.href = '/login';
-    } else {
-        const displayName = user.name || user.username;
+    // Wait for auth-check.js to verify the session
+    window.addEventListener('auth:ready', function (e) {
+        var user = e.detail;
+        var displayName = user.name || user.username;
         document.getElementById('usernameDisplay').innerText = displayName;
         document.getElementById('welcomeName').innerText = displayName;
-    }
+
+        // Show teacher-only cards
+        if (user.role === 'teacher') {
+            document.querySelectorAll('[data-role="teacher"]').forEach(function (card) {
+                card.style.display = '';
+            });
+        }
+    });
 
     function logout() {
-        sessionStorage.clear();
-        window.location.href = '/login';
+        authFetch('/auth/logout', { method: 'POST' })
+            .then(function (r) { return r.json(); })
+            .finally(function () {
+                sessionStorage.clear();
+                window.location.href = '/login';
+            });
     }
 </script>
 </body>

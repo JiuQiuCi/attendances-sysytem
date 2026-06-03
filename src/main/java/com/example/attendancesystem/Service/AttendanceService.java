@@ -25,6 +25,7 @@ public interface AttendanceService {
     List<Attendance> getAttendancesByStudentAndDateRange(Integer studentId, LocalDate start, LocalDate end);
     List<Attendance> getAttendancesByCourseAndDate(Integer courseId, LocalDate date);
     void deleteAttendance(Integer id);
+    void deleteAttendances(List<Integer> ids);
 
     Page<Attendance> getAttendancesPage(Pageable pageable);
     Page<Attendance> searchAttendances(Integer courseId, LocalDate startDate, LocalDate endDate, Pageable pageable);

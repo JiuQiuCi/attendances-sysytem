@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" data-required-role="teacher">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>学生管理 - 西财考勤系统</title>
+    <title>学生管理 - 西南财经大学考勤系统</title>
     <link rel="stylesheet" href="/css/style.css">
     <style>
         .page-wrap { max-width: 1400px; margin: 30px auto; padding: 20px; }
@@ -36,7 +36,7 @@
         .progress-wrap { display: none; margin-top: 12px; }
         .progress-wrap.show { display: block; }
         .progress-bar-outer { height: 8px; background: var(--border); border-radius: var(--radius-full); overflow: hidden; }
-        .progress-bar-inner { height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), #7C3AED); border-radius: var(--radius-full); transition: width 0.3s; }
+        .progress-bar-inner { height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), #005A9E); border-radius: var(--radius-full); transition: width 0.3s; }
         .progress-text { text-align: center; font-size: 0.85rem; color: var(--text-secondary); margin-top: 6px; }
         .import-result { display: none; margin-top: 14px; padding: 16px; border-radius: var(--radius); background: var(--bg-white); border: 1px solid var(--border); }
         .import-result.show { display: block; }
@@ -50,9 +50,11 @@
     </style>
 </head>
 <body>
+<script src="/js/auth-check.js"></script>
 <div class="page-wrap">
     <div class="card">
         <div class="page-header">
+            <img class="emblem-logo" src="/images/logo.png" alt="西南财经大学">
             <span class="page-title">学生信息管理</span>
         </div>
 
@@ -108,14 +110,12 @@
                     <th data-sort="studentId">学号</th>
                     <th data-sort="name">姓名</th>
                     <th data-sort="gender">性别</th>
-                    <th data-sort="birthDate">出生日期</th>
-                    <th data-sort="phone">联系方式</th>
                     <th data-sort="className">班级</th>
                     <th>操作</th>
                 </tr>
                 </thead>
                 <tbody id="tableBody">
-                <tr class="empty-row"><td colspan="8">加载中...</td></tr>
+                <tr class="empty-row"><td colspan="6">加载中...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -130,7 +130,7 @@
     function loadData() {
         let url = `/student/list?page=${currentPage}&size=${pageSize}&sortBy=${sortBy}&direction=${direction}`;
         if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
-        fetch(url)
+        authFetch(url)
             .then(res => res.json())
             .then(result => {
                 if (result.code === 200) {
@@ -144,7 +144,7 @@
     function renderTable(students) {
         const tbody = document.getElementById('tableBody');
         if (!students || students.length === 0) {
-            tbody.innerHTML = '<tr class="empty-row"><td colspan="8">暂无数据</td></tr>';
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="6">暂无数据</td></tr>';
             return;
         }
         tbody.innerHTML = '';
@@ -154,10 +154,8 @@
             row.insertCell(1).innerText = s.studentId;
             row.insertCell(2).innerText = s.name;
             row.insertCell(3).innerText = s.gender || '';
-            row.insertCell(4).innerText = s.birthDate || '';
-            row.insertCell(5).innerText = s.phone || '';
-            row.insertCell(6).innerText = s.className || '';
-            const actions = row.insertCell(7);
+            row.insertCell(4).innerText = s.className || '';
+            const actions = row.insertCell(5);
             actions.className = 'action-btns';
             actions.innerHTML = `
                 <button class="btn btn-warning btn-sm" onclick="editStudent(${s.id})">编辑</button>
@@ -186,7 +184,7 @@
 
     async function deleteStudent(id) {
         if (!confirm('确定要删除该学生吗？')) return;
-        const resp = await fetch(`/student/${id}`, { method: 'DELETE' });
+        const resp = await authFetch(`/student/${id}`, { method: 'DELETE' });
         const result = await resp.json();
         if (result.code === 200) { alert('删除成功'); loadData(); }
         else alert(result.message);
@@ -197,7 +195,7 @@
         const ids = Array.from(checkboxes).map(cb => parseInt(cb.value));
         if (ids.length === 0) { alert('请至少选择一名学生'); return; }
         if (!confirm(`确定要删除 ${ids.length} 名学生吗？`)) return;
-        const resp = await fetch('/student/batch', {
+        const resp = await authFetch('/student/batch', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(ids)
@@ -263,6 +261,7 @@
         formData.append('file', file);
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/file/upload');
+        xhr.setRequestHeader('X-XSRF-TOKEN', getCsrfToken());
         xhr.upload.addEventListener('progress', (e) => {
             if (e.lengthComputable) {
                 const pct = Math.round((e.loaded / e.total) * 100);

@@ -161,6 +161,11 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     @Override
+    public void deleteAttendances(List<Integer> ids) {
+        attendanceRepository.deleteAllById(ids);
+    }
+
+    @Override
     public Page<Attendance> getAttendancesPage(Pageable pageable) {
         return attendanceRepository.findAll(pageable);
     }

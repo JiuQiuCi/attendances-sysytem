@@ -168,6 +168,14 @@ public class AttendanceController {
         workbook.close();
     }
 
+    // 查询单条考勤记录
+    @GetMapping("/{id}")
+    public Result<Attendance> getAttendance(@PathVariable Integer id) {
+        return attendanceService.getAttendanceById(id)
+                .map(Result::success)
+                .orElse(Result.error(404, "记录不存在"));
+    }
+
     // 删除考勤记录
     @DeleteMapping("/{id}")
     public Result<Void> deleteAttendance(@PathVariable Integer id) {
@@ -176,6 +184,17 @@ public class AttendanceController {
             return Result.success(null);
         } catch (Exception e) {
             return Result.error(500, "删除失败：" + e.getMessage());
+        }
+    }
+
+    // 批量删除
+    @DeleteMapping("/batch")
+    public Result<Void> batchDelete(@RequestBody List<Integer> ids) {
+        try {
+            attendanceService.deleteAttendances(ids);
+            return Result.success(null);
+        } catch (Exception e) {
+            return Result.error(500, "批量删除失败：" + e.getMessage());
         }
     }
 }

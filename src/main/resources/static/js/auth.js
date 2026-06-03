@@ -1,19 +1,36 @@
-const API_BASE = '/auth';
+var API_BASE = '/auth';
 
-// 注册处理
-const registerForm = document.getElementById('registerForm');
+// ──────────────────── CSRF helper ────────────────────
+
+function getCsrfTokenFromCookie() {
+    var match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : '';
+}
+
+function authHeaders(extraHeaders) {
+    var headers = extraHeaders || {};
+    var csrf = getCsrfTokenFromCookie();
+    if (csrf) {
+        headers['X-XSRF-TOKEN'] = csrf;
+    }
+    return headers;
+}
+
+// ──────────────────── 注册处理 ────────────────────
+
+var registerForm = document.getElementById('registerForm');
 if (registerForm) {
-    registerForm.addEventListener('submit', async (e) => {
+    registerForm.addEventListener('submit', async function (e) {
         e.preventDefault();
         clearErrors();
 
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value;
-        const confirmPassword = document.getElementById('confirmPassword').value;
-        const name = document.getElementById('name').value.trim();
-        const role = document.getElementById('role').value;
+        var username = document.getElementById('username').value.trim();
+        var password = document.getElementById('password').value;
+        var confirmPassword = document.getElementById('confirmPassword').value;
+        var name = document.getElementById('name').value.trim();
+        var role = document.getElementById('role').value;
 
-        let hasError = false;
+        var hasError = false;
         if (!username) { showError('usernameError', '用户名不能为空'); hasError = true; }
         if (!password) { showError('passwordError', '密码不能为空'); hasError = true; }
         else if (password.length < 6) { showError('passwordError', '密码长度至少6位'); hasError = true; }
@@ -22,15 +39,15 @@ if (registerForm) {
         if (hasError) return;
 
         try {
-            const response = await fetch(`${API_BASE}/register`, {
+            var response = await fetch(API_BASE + '/register', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password, name, role })
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ username: username, password: password, name: name, role: role })
             });
-            const result = await response.json();
+            var result = await response.json();
             if (result.code === 200) {
                 alert('注册成功，请登录');
-                window.location.href = '/login';   // 注意：没有 .html
+                window.location.href = '/login';
             } else {
                 showGlobalError(result.message || '注册失败');
             }
@@ -40,30 +57,39 @@ if (registerForm) {
     });
 }
 
-// 登录处理
-const loginForm = document.getElementById('loginForm');
+// ──────────────────── 登录处理 ────────────────────
+
+var loginForm = document.getElementById('loginForm');
 if (loginForm) {
-    loginForm.addEventListener('submit', async (e) => {
+    loginForm.addEventListener('submit', async function (e) {
         e.preventDefault();
         clearErrors();
 
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value;
+        var username = document.getElementById('username').value.trim();
+        var password = document.getElementById('password').value;
 
         if (!username) { showError('usernameError', '用户名不能为空'); return; }
         if (!password) { showError('passwordError', '密码不能为空'); return; }
 
         try {
-            const response = await fetch(`${API_BASE}/login`, {
+            var response = await fetch(API_BASE + '/login', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ username: username, password: password })
             });
-            const result = await response.json();
-            if (result.code === 200) {
-                const user = { username, name: username };
-                sessionStorage.setItem('user', JSON.stringify(user));
-                window.location.href = '/index';   // 注意：没有 .html
+            var result = await response.json();
+            if (result.code === 200 && result.data) {
+                // Store full user info (now returned by server)
+                sessionStorage.setItem('user', JSON.stringify({
+                    username: result.data.username,
+                    name: result.data.name,
+                    role: result.data.role
+                }));
+
+                // Redirect to saved URL (if set by auth-check.js) or dashboard
+                var redirectUrl = sessionStorage.getItem('redirectUrl');
+                sessionStorage.removeItem('redirectUrl');
+                window.location.href = redirectUrl || '/index';
             } else {
                 showGlobalError(result.message || '用户名或密码错误');
             }
@@ -73,24 +99,27 @@ if (loginForm) {
     });
 }
 
-// 辅助函数（与之前相同）
+// ──────────────────── 辅助函数 ────────────────────
+
 function showError(elementId, message) {
-    const el = document.getElementById(elementId);
+    var el = document.getElementById(elementId);
     if (el) { el.textContent = message; el.style.display = 'block'; }
 }
+
 function clearErrors() {
-    document.querySelectorAll('.error-msg').forEach(el => {
+    document.querySelectorAll('.error-msg').forEach(function (el) {
         el.textContent = '';
         el.style.display = 'none';
     });
-    const globalError = document.getElementById('globalError');
+    var globalError = document.getElementById('globalError');
     if (globalError) {
         globalError.textContent = '';
         globalError.classList.remove('show');
     }
 }
+
 function showGlobalError(message) {
-    const globalError = document.getElementById('globalError');
+    var globalError = document.getElementById('globalError');
     if (globalError) {
         globalError.textContent = message;
         globalError.classList.add('show');

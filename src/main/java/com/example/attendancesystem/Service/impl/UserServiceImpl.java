@@ -5,16 +5,13 @@ import com.example.attendancesystem.entity.User;
 import com.example.attendancesystem.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.example.attendancesystem.config.PasswordEncoderConfig;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import java.util.List;
-import java.util.Optional;
-
-import com.example.attendancesystem.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-
+import java.util.List;
+import java.util.Optional;
 import java.time.LocalDateTime;
+
+import com.example.attendancesystem.repository.UserRepository;
 @Service
 public class UserServiceImpl implements UserService {
 
@@ -68,8 +65,8 @@ public class UserServiceImpl implements UserService {
         @Autowired
         private UserRepository userRepository;
 
-
-       private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+        @Autowired
+        private PasswordEncoder passwordEncoder;
 
         @Override
         public Optional<User> findByUsername(String username) {

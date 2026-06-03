@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>考勤管理 - 西财考勤系统</title>
+    <title>考勤管理 - 西南财经大学考勤系统</title>
     <link rel="stylesheet" href="/css/style.css">
     <style>
         .page-wrap { max-width: 1400px; margin: 30px auto; padding: 20px; }
@@ -51,7 +51,7 @@
         .progress-bar-inner {
             height: 100%;
             width: 0%;
-            background: linear-gradient(90deg, var(--primary), #7C3AED);
+            background: linear-gradient(90deg, var(--primary), #005A9E);
             border-radius: var(--radius-full);
             transition: width 0.3s ease;
         }
@@ -106,9 +106,11 @@
     </style>
 </head>
 <body>
+<script src="/js/auth-check.js"></script>
 <div class="page-wrap">
     <div class="card">
         <div class="page-header">
+            <img class="emblem-logo" src="/images/logo.png" alt="西南财经大学">
             <span class="page-title">考勤记录管理</span>
         </div>
 
@@ -207,13 +209,31 @@
             </div>
         </div>
 
+        <!-- 批量操作栏 -->
+        <div id="batchBar" style="display:none;margin-bottom:6px;padding:8px 12px;background:var(--bg);border-radius:var(--radius);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span style="font-weight:700;font-size:0.9rem;">已选 <span id="selectedCount">0</span> 条</span>
+            <select id="batchStatus" style="width:100px;">
+                <option value="">批量改状态</option>
+                <option value="present">正常</option>
+                <option value="absent">缺勤</option>
+                <option value="late">迟到</option>
+                <option value="early_leave">早退</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="batchChangeStatus()">应用</button>
+            <button class="btn btn-success btn-sm" onclick="batchSetDate()">批量改日期</button>
+            <input type="date" id="batchDate" style="width:130px;">
+            <button class="btn btn-danger btn-sm" onclick="batchDelete()">批量删除</button>
+        </div>
+
         <!-- 考勤表格 -->
         <div class="table-wrapper">
             <table id="attTable">
                 <thead>
                 <tr>
+                    <th style="width:36px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="全选"></th>
                     <th data-sort="attendanceDate">日期</th>
                     <th data-sort="student.name">学生</th>
+                    <th>学号</th>
                     <th data-sort="course.name">课程</th>
                     <th data-sort="status">状态</th>
                     <th data-sort="seatPosition">座位</th>
@@ -221,7 +241,7 @@
                 </tr>
                 </thead>
                 <tbody id="tableBody">
-                <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-secondary);">加载中...</td></tr>
+                <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);">加载中...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -233,7 +253,7 @@
     let currentPage = 0, pageSize = 10, sortBy = 'attendanceDate', direction = 'desc';
     let courseId = '', startDate = '', endDate = '';
 
-    fetch('/attendance/courses')
+    authFetch('/attendance/courses')
         .then(res => res.json())
         .then(result => {
             if (result.code === 200) {
@@ -255,7 +275,7 @@
         if (courseId) url += `&courseId=${courseId}`;
         if (startDate) url += `&startDate=${startDate}`;
         if (endDate) url += `&endDate=${endDate}`;
-        fetch(url)
+        authFetch(url)
             .then(res => res.json())
             .then(result => {
                 if (result.code === 200) {
@@ -266,18 +286,35 @@
             .catch(err => console.error(err));
     }
 
+    let selectedIds = new Set();
+
     function renderTable(attendances) {
         const tbody = document.getElementById('tableBody');
+        selectedIds.clear();
+        document.getElementById('selectAll').checked = false;
+        updateBatchBar();
+
         if (!attendances || attendances.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-secondary);">暂无数据</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);">暂无数据</td></tr>';
             return;
         }
         tbody.innerHTML = '';
         attendances.forEach(a => {
             const row = tbody.insertRow();
-            row.insertCell(0).innerText = a.attendanceDate;
-            row.insertCell(1).innerText = a.student ? a.student.name : '';
-            row.insertCell(2).innerText = a.course ? a.course.name : '';
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.value = a.id;
+            cb.onchange = function() {
+                if (cb.checked) selectedIds.add(a.id); else selectedIds.delete(a.id);
+                updateBatchBar();
+            };
+            row.insertCell(0).appendChild(cb);
+
+            row.insertCell(1).innerText = a.attendanceDate;
+            row.insertCell(2).innerText = a.student ? a.student.name : '';
+            row.insertCell(3).innerText = a.student ? (a.student.studentId || '') : '';
+
+            row.insertCell(4).innerText = a.course ? a.course.name : '';
 
             let statusText = '', badgeClass = '';
             if (a.status === 'present') { statusText = '正常'; badgeClass = 'badge-present'; }
@@ -285,11 +322,97 @@
             else if (a.status === 'early_leave') { statusText = '早退'; badgeClass = 'badge-early'; }
             else if (a.status === 'absent') { statusText = '缺勤'; badgeClass = 'badge-absent'; }
             else { statusText = a.status; }
-            row.insertCell(3).innerHTML = `<span class="badge ${badgeClass}">${statusText}</span>`;
+            row.insertCell(5).innerHTML = `<span class="badge ${badgeClass}">${statusText}</span>`;
 
-            row.insertCell(4).innerText = a.seatPosition || '';
-            row.insertCell(5).innerHTML = `<button class="btn btn-danger btn-sm" onclick="deleteRecord(${a.id})">删除</button>`;
+            row.insertCell(6).innerText = a.seatPosition || '';
+
+            const sid = a.student ? a.student.id : 0;
+            const cid = a.course ? a.course.id : 0;
+            const adate = a.attendanceDate;
+            row.insertCell(7).innerHTML =
+                `<select onchange="changeStatus(${a.id},${sid},${cid},'${adate}',this.value)" style="font-size:0.75rem;padding:2px 4px;width:70px;">
+                    <option value="">改状态</option>
+                    <option value="present">正常</option>
+                    <option value="absent">缺勤</option>
+                    <option value="late">迟到</option>
+                    <option value="early_leave">早退</option>
+                </select>
+                <button class="btn btn-danger btn-sm" style="margin-left:4px;" onclick="deleteRecord(${a.id})">删</button>`;
         });
+    }
+
+    function toggleSelectAll(cb) {
+        document.querySelectorAll('#tableBody input[type=checkbox]').forEach(box => {
+            box.checked = cb.checked;
+            const id = parseInt(box.value);
+            if (cb.checked) selectedIds.add(id); else selectedIds.delete(id);
+        });
+        updateBatchBar();
+    }
+
+    function updateBatchBar() {
+        document.getElementById('selectedCount').textContent = selectedIds.size;
+        document.getElementById('batchBar').style.display = selectedIds.size > 0 ? 'flex' : 'none';
+    }
+
+    async function batchChangeStatus() {
+        const status = document.getElementById('batchStatus').value;
+        if (!status) { alert('请选择状态'); return; }
+        if (selectedIds.size === 0) { alert('请选择记录'); return; }
+        const statusNames = {present:'正常',absent:'缺勤',late:'迟到',early_leave:'早退'};
+        if (!confirm(`确定将 ${selectedIds.size} 条记录改为 "${statusNames[status]||status}" 吗？`)) return;
+
+        let success = 0, fail = 0;
+        for (const id of selectedIds) {
+            try {
+                const resp = await authFetch(`/attendance/${id}`).then(r => r.json());
+                if (resp.code !== 200) { fail++; continue; }
+                const a = resp.data;
+                const sid = a.student ? a.student.id : 0;
+                const cid = a.course ? a.course.id : 0;
+                const date = a.attendanceDate;
+                const markResp = await authFetch(`/attendance/mark?studentId=${sid}&courseId=${cid}&date=${date}&status=${status}`, { method: 'POST' });
+                const mr = await markResp.json();
+                if (mr.code === 200) success++; else fail++;
+            } catch(e) { fail++; }
+        }
+        alert(`批量更新完成: 成功 ${success}, 失败 ${fail}`);
+        loadData();
+    }
+
+    async function batchSetDate() {
+        const newDate = document.getElementById('batchDate').value;
+        if (!newDate) { alert('请选择日期'); return; }
+        if (selectedIds.size === 0) { alert('请选择记录'); return; }
+        if (!confirm(`确定将 ${selectedIds.size} 条记录的日期改为 "${newDate}" 吗？`)) return;
+        let success = 0, fail = 0;
+        for (const id of selectedIds) {
+            try {
+                const resp = await authFetch(`/attendance/${id}`).then(r => r.json());
+                if (resp.code !== 200) { fail++; continue; }
+                const a = resp.data;
+                const sid = a.student ? a.student.id : 0;
+                const cid = a.course ? a.course.id : 0;
+                const markResp = await authFetch(`/attendance/mark?studentId=${sid}&courseId=${cid}&date=${newDate}&status=${a.status||'present'}`, { method: 'POST' });
+                const mr = await markResp.json();
+                if (mr.code === 200) success++; else fail++;
+            } catch(e) { fail++; }
+        }
+        alert(`批量改日期完成: 成功 ${success}, 失败 ${fail}`);
+        loadData();
+    }
+
+    async function batchDelete() {
+        if (selectedIds.size === 0) { alert('请选择记录'); return; }
+        if (!confirm(`确定删除 ${selectedIds.size} 条考勤记录吗？此操作不可恢复。`)) return;
+        const resp = await authFetch('/attendance/batch', {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(Array.from(selectedIds))
+        });
+        const result = await resp.json();
+        if (result.code === 200) { alert('批量删除成功'); } else { alert(result.message); }
+        loadData();
     }
 
     function renderPagination(page) {
@@ -340,7 +463,7 @@
         if (!q) { dropdown.style.display = 'none'; return; }
         searchTimer = setTimeout(async () => {
             try {
-                const resp = await fetch(`/student/quick-search?q=${encodeURIComponent(q)}`);
+                const resp = await authFetch(`/student/quick-search?q=${encodeURIComponent(q)}`);
                 const result = await resp.json();
                 if (result.code === 200 && result.data && result.data.length > 0) {
                     dropdown.innerHTML = result.data.map(s =>
@@ -371,7 +494,7 @@
         if (!studentId) { alert('请先搜索并选择学生'); return; }
         if (!courseIdVal || !date) { alert('请选择课程和日期'); return; }
         const statusNames = {present:'签到',absent:'缺勤',late:'迟到',early_leave:'早退'};
-        const resp = await fetch(`/attendance/mark?studentId=${studentId}&courseId=${courseIdVal}&date=${date}&status=${status}`, { method: 'POST' });
+        const resp = await authFetch(`/attendance/mark?studentId=${studentId}&courseId=${courseIdVal}&date=${date}&status=${status}`, { method: 'POST' });
         const result = await resp.json();
         alert(result.message || (result.code === 200 ? '已标记: ' + (statusNames[status]||status) : result.message));
         if (result.code === 200) loadData();
@@ -385,9 +508,21 @@
         }
     });
 
+    async function changeStatus(attId, studentId, courseId, date, newStatus) {
+        if (!newStatus) return;
+        const resp = await authFetch(`/attendance/mark?studentId=${studentId}&courseId=${courseId}&date=${date}&status=${newStatus}`, { method: 'POST' });
+        const result = await resp.json();
+        if (result.code === 200) {
+            loadData();
+        } else {
+            alert(result.message);
+            loadData();
+        }
+    }
+
     async function deleteRecord(id) {
         if (!confirm('确定删除该考勤记录吗？')) return;
-        const resp = await fetch(`/attendance/${id}`, { method: 'DELETE' });
+        const resp = await authFetch(`/attendance/${id}`, { method: 'DELETE' });
         const result = await resp.json();
         if (result.code === 200) { alert('删除成功'); loadData(); }
         else alert(result.message);
@@ -470,6 +605,7 @@
 
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/file/upload');
+        xhr.setRequestHeader('X-XSRF-TOKEN', getCsrfToken());
 
         xhr.upload.addEventListener('progress', (e) => {
             if (e.lengthComputable) {
