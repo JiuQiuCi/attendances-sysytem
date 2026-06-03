@@ -15,6 +15,7 @@ import java.util.Optional;
 public interface StudentRepository extends JpaRepository<Student, Integer>, JpaSpecificationExecutor<Student> {
 
     Optional<Student> findByStudentId(String studentId);
+    Optional<Student> findByUserId(Integer userId);
     List<Student> findByClassName(String className);
 
     // 模糊搜索（名称或学号）
@@ -23,4 +24,24 @@ public interface StudentRepository extends JpaRepository<Student, Integer>, JpaS
 
     // 批量删除
     void deleteByIdIn(List<Integer> ids);
+
+    // ===== 数据隔离查询 =====
+
+    // 查询教师课程下的所有学生（通过考勤记录关联）
+    @Query("SELECT DISTINCT s FROM Student s JOIN Attendance a ON a.student.id = s.id " +
+           "JOIN Course c ON a.course.id = c.id WHERE c.teacherId = :teacherId")
+    Page<Student> findStudentsByTeacherId(@Param("teacherId") Integer teacherId, Pageable pageable);
+
+    // 教师在课程范围内搜索学生
+    @Query("SELECT DISTINCT s FROM Student s JOIN Attendance a ON a.student.id = s.id " +
+           "JOIN Course c ON a.course.id = c.id WHERE c.teacherId = :teacherId AND " +
+           "(s.name LIKE %:keyword% OR s.studentId LIKE %:keyword%)")
+    Page<Student> searchStudentsByTeacherId(@Param("teacherId") Integer teacherId,
+                                             @Param("keyword") String keyword,
+                                             Pageable pageable);
+
+    // 教师课程下的所有学生（不分页，用于导出）
+    @Query("SELECT DISTINCT s FROM Student s JOIN Attendance a ON a.student.id = s.id " +
+           "JOIN Course c ON a.course.id = c.id WHERE c.teacherId = :teacherId ORDER BY s.id")
+    List<Student> findAllStudentsByTeacherId(@Param("teacherId") Integer teacherId);
 }

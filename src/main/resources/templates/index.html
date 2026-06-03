@@ -5,13 +5,108 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>西南财经大学 · 学生考勤系统</title>
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .dashboard { max-width: 1280px; margin: 0 auto; padding: 20px; }
+
+        /* Header */
+        .dash-header {
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;
+            background: rgba(255,255,255,0.82); backdrop-filter: blur(14px);
+            border-radius: var(--radius-xl); padding: 14px 28px; margin-bottom: 24px;
+            box-shadow: var(--shadow-md); border: 1px solid rgba(255,255,255,0.5);
+        }
+        .dash-brand { display: flex; align-items: center; gap: 12px; }
+        .dash-school {
+            font-size: 1.1rem; font-weight: 700; color: var(--text);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .dash-school::before {
+            content: ''; display: inline-block; width: 3px; height: 22px;
+            background: var(--primary-gradient); border-radius: 2px;
+        }
+        .dash-user { display: flex; align-items: center; gap: 14px; }
+        .dash-username {
+            font-weight: 600; color: var(--text); background: var(--bg);
+            padding: 7px 18px; border-radius: var(--radius-full); font-size: 0.9rem;
+        }
+
+        /* Welcome Card */
+        .welcome-card {
+            background: var(--primary-gradient); color: #fff; border-radius: var(--radius-xl);
+            padding: 40px 44px; margin-bottom: 28px; box-shadow: var(--shadow-lg), 0 0 40px rgba(0,59,113,0.15);
+            text-align: center; position: relative; overflow: hidden;
+        }
+        .welcome-card::before {
+            content: ''; position: absolute; top: -50%; right: -20%;
+            width: 300px; height: 300px; background: rgba(255,255,255,0.06);
+            border-radius: 50%; pointer-events: none;
+        }
+        .welcome-card::after {
+            content: ''; position: absolute; bottom: -30%; left: -10%;
+            width: 200px; height: 200px; background: rgba(255,255,255,0.04);
+            border-radius: 50%; pointer-events: none;
+        }
+        .welcome-card h2 { font-size: 1.7rem; margin-bottom: 6px; position: relative; z-index: 1; }
+        .welcome-card p { opacity: 0.88; font-size: 1rem; position: relative; z-index: 1; }
+        .welcome-card .stats-row-dash {
+            display: flex; gap: 32px; justify-content: center; margin-top: 20px;
+            flex-wrap: wrap; position: relative; z-index: 1;
+        }
+        .welcome-card .dash-stat { text-align: center; }
+        .welcome-card .dash-stat .ds-num { font-size: 2rem; font-weight: 800; }
+        .welcome-card .dash-stat .ds-lbl { font-size: 0.85rem; opacity: 0.8; margin-top: 2px; }
+
+        /* Menu Grid */
+        .menu-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px; margin: 24px 0 36px;
+        }
+        .menu-card {
+            background: rgba(255,255,255,0.72); backdrop-filter: blur(10px);
+            border-radius: var(--radius-xl); padding: 30px 24px; text-align: center;
+            cursor: pointer; transition: all var(--transition-slow);
+            box-shadow: var(--shadow); border: 1px solid transparent;
+            position: relative; overflow: hidden;
+        }
+        .menu-card::after {
+            content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+            height: 3px; background: var(--primary-gradient);
+            transform: scaleX(0); transition: transform var(--transition-slow);
+        }
+        .menu-card:hover::after { transform: scaleX(1); }
+        .menu-card:hover {
+            transform: translateY(-6px); box-shadow: var(--shadow-xl);
+            border-color: rgba(0,59,113,0.15);
+        }
+        .menu-icon { font-size: 2.8rem; margin-bottom: 14px; display: block; transition: transform var(--transition-slow); }
+        .menu-card:hover .menu-icon { transform: scale(1.1); }
+        .menu-title { font-size: 1.15rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+        .menu-desc { color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; }
+
+        /* Footer */
+        .dash-footer {
+            text-align: center; padding: 20px; color: var(--text-secondary);
+            font-size: 0.85rem; background: rgba(255,255,255,0.72);
+            backdrop-filter: blur(10px); border-radius: var(--radius-lg);
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+
+        @media (max-width: 768px) {
+            .dashboard { padding: 10px; }
+            .dash-header { padding: 12px 18px; flex-direction: column; text-align: center; }
+            .welcome-card { padding: 28px 20px; }
+            .welcome-card h2 { font-size: 1.3rem; }
+            .menu-grid { grid-template-columns: 1fr; gap: 14px; }
+            .welcome-card .stats-row-dash { gap: 18px; }
+        }
+    </style>
 </head>
 <body>
 <div class="dashboard">
-    <!-- 头部 -->
+    <!-- Header -->
     <div class="dash-header">
         <div class="dash-brand">
-            <img class="emblem-logo" src="/images/logo.png" alt="西南财经大学">
+            <img class="emblem-logo" src="/images/logo.png" alt="西南财经大学" style="width:44px;height:44px;">
             <span class="dash-school">西南财经大学 · 学生考勤系统</span>
         </div>
         <div class="dash-user">
@@ -20,43 +115,44 @@
         </div>
     </div>
 
-    <!-- 欢迎卡片 -->
+    <!-- Welcome Card -->
     <div class="welcome-card">
-        <h2>欢迎，<span id="welcomeName"></span>！</h2>
-        <p>西南财经大学学生考勤管理系统 — 严谨治学，智慧管理</p>
+        <h2>👋 欢迎，<span id="welcomeName"></span>！</h2>
+        <p>严谨治学，智慧管理 — 西南财经大学学生考勤管理系统</p>
+        <div class="stats-row-dash" id="statsSummary"></div>
     </div>
 
-    <!-- 功能菜单 -->
+    <!-- Menu Grid -->
     <div class="menu-grid">
-        <!-- 教师专属：学生管理 -->
+        <!-- 教师：学生管理 -->
         <div class="menu-card" data-role="teacher" onclick="location.href='/student/list-page'" style="display:none">
             <span class="menu-icon">👨‍🎓</span>
             <div class="menu-title">学生管理</div>
-            <div class="menu-desc">管理学生基本信息（增删改查、批量删除、搜索排序）</div>
+            <div class="menu-desc">管理学生基本信息、导入名单、批量操作</div>
         </div>
-        <!-- 所有人：考勤管理 -->
+        <!-- 考勤管理 -->
         <div class="menu-card" onclick="location.href='/attendance/list-page'">
             <span class="menu-icon">📅</span>
             <div class="menu-title">考勤管理</div>
-            <div class="menu-desc">记录每日出勤，查看统计报表</div>
+            <div class="menu-desc">记录每日出勤、扫码签到、数据导入导出</div>
         </div>
-        <!-- 教师专属：课程管理 -->
+        <!-- 教师：课程管理 -->
         <div class="menu-card" data-role="teacher" onclick="location.href='/course/list-page'" style="display:none">
             <span class="menu-icon">📚</span>
             <div class="menu-title">课程管理</div>
-            <div class="menu-desc">维护课程信息，分配授课教师</div>
+            <div class="menu-desc">维护课程信息、分配授课教师、排课管理</div>
         </div>
-        <!-- 所有人：请假管理 -->
+        <!-- 请假管理 -->
         <div class="menu-card" onclick="location.href='/leave/list-page'">
             <span class="menu-icon">📝</span>
             <div class="menu-title">请假管理</div>
-            <div class="menu-desc">提交请假申请，查看审批状态</div>
+            <div class="menu-desc">提交请假申请、查看审批状态</div>
         </div>
-        <!-- 教师专属：数据报表 -->
+        <!-- 教师：数据报表 -->
         <div class="menu-card" data-role="teacher" onclick="location.href='/report'" style="display:none">
             <span class="menu-icon">📊</span>
             <div class="menu-title">数据报表</div>
-            <div class="menu-desc">出勤率分析，班级对比图表</div>
+            <div class="menu-desc">出勤率分析、班级对比、可视化图表</div>
         </div>
     </div>
 
@@ -67,20 +163,54 @@
 
 <script src="/js/auth-check.js"></script>
 <script>
-    // Wait for auth-check.js to verify the session
     window.addEventListener('auth:ready', function (e) {
         var user = e.detail;
         var displayName = user.name || user.username;
         document.getElementById('usernameDisplay').innerText = displayName;
         document.getElementById('welcomeName').innerText = displayName;
 
-        // Show teacher-only cards
         if (user.role === 'teacher') {
             document.querySelectorAll('[data-role="teacher"]').forEach(function (card) {
                 card.style.display = '';
             });
+            loadTeacherStats();
+        } else {
+            loadStudentInfo();
         }
     });
+
+    function loadTeacherStats() {
+        authFetch('/course/all')
+            .then(function(r) { return r.json(); })
+            .then(function(result) {
+                if (result.code === 200 && result.data) {
+                    var summary = document.getElementById('statsSummary');
+                    summary.innerHTML += '<div class="dash-stat"><div class="ds-num">' + result.data.length
+                        + '</div><div class="ds-lbl">我的课程</div></div>';
+                }
+            });
+        authFetch('/api/leave/pending-count')
+            .then(function(r) { return r.json(); })
+            .then(function(result) {
+                if (result.code === 200 && result.data) {
+                    var summary = document.getElementById('statsSummary');
+                    summary.innerHTML += '<div class="dash-stat"><div class="ds-num" style="color:#FBBF24;">'
+                        + result.data.count + '</div><div class="ds-lbl">待审批请假</div></div>';
+                }
+            });
+    }
+
+    function loadStudentInfo() {
+        authFetch('/attendance/courses')
+            .then(function(r) { return r.json(); })
+            .then(function(result) {
+                if (result.code === 200 && result.data) {
+                    var summary = document.getElementById('statsSummary');
+                    summary.innerHTML += '<div class="dash-stat"><div class="ds-num">' + result.data.length
+                        + '</div><div class="ds-lbl">参与课程</div></div>';
+                }
+            });
+    }
 
     function logout() {
         authFetch('/auth/logout', { method: 'POST' })

@@ -37,6 +37,9 @@ public class Student {
     @Column(length = 20)
     private String phone;
 
+    @Column(name = "user_id")
+    private Integer userId;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 }

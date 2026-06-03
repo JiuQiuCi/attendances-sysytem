@@ -34,4 +34,9 @@ public interface CourseRepository extends JpaRepository<Course, Integer> {
 
     @Query("SELECT DISTINCT c.semester FROM Course c ORDER BY c.semester DESC")
     List<Integer> findAllSemesters();
+
+    // 按课程代码+教师+星期+开始时间查找（同一时间段唯一性检查）
+    List<Course> findByCodeAndTeacherIdAndWeekDayAndStartTime(String code, Integer teacherId,
+                                                               java.time.DayOfWeek weekDay,
+                                                               java.time.LocalTime startTime);
 }

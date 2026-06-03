@@ -25,4 +25,34 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Integer>
 
     // 新增：根据学生、课程、日期查找唯一考勤记录
     Optional<Attendance> findByStudentIdAndCourseIdAndAttendanceDate(Integer studentId, Integer courseId, LocalDate date);
+
+    // ===== 数据隔离查询 =====
+
+    // 查询教师所有课程下的考勤记录（分页）
+    @Query("SELECT a FROM Attendance a JOIN a.course c WHERE c.teacherId = :teacherId")
+    Page<Attendance> findByTeacherId(@Param("teacherId") Integer teacherId, Pageable pageable);
+
+    // 查询教师所有课程下的考勤记录（不分页）
+    @Query("SELECT a FROM Attendance a JOIN a.course c WHERE c.teacherId = :teacherId")
+    List<Attendance> findAllByTeacherId(@Param("teacherId") Integer teacherId);
+
+    // 教师在课程范围内按日期过滤考勤
+    @Query("SELECT a FROM Attendance a JOIN a.course c WHERE c.teacherId = :teacherId " +
+           "AND (:startDate IS NULL OR a.attendanceDate >= :startDate) " +
+           "AND (:endDate IS NULL OR a.attendanceDate <= :endDate)")
+    Page<Attendance> findByTeacherIdAndDateRange(@Param("teacherId") Integer teacherId,
+                                                  @Param("startDate") LocalDate startDate,
+                                                  @Param("endDate") LocalDate endDate,
+                                                  Pageable pageable);
+
+    // 教师在指定课程中按日期过滤考勤
+    @Query("SELECT a FROM Attendance a JOIN a.course c WHERE c.teacherId = :teacherId " +
+           "AND a.course.id = :courseId " +
+           "AND (:startDate IS NULL OR a.attendanceDate >= :startDate) " +
+           "AND (:endDate IS NULL OR a.attendanceDate <= :endDate)")
+    Page<Attendance> findByTeacherIdAndCourseIdAndDateRange(@Param("teacherId") Integer teacherId,
+                                                             @Param("courseId") Integer courseId,
+                                                             @Param("startDate") LocalDate startDate,
+                                                             @Param("endDate") LocalDate endDate,
+                                                             Pageable pageable);
 }

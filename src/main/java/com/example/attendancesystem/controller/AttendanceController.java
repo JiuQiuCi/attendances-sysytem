@@ -3,8 +3,13 @@ package com.example.attendancesystem.controller;
 import com.example.attendancesystem.common.Result;
 import com.example.attendancesystem.entity.Attendance;
 import com.example.attendancesystem.entity.Course;
+import com.example.attendancesystem.entity.Student;
+import com.example.attendancesystem.entity.User;
 import com.example.attendancesystem.repository.CourseRepository;
+import com.example.attendancesystem.repository.StudentRepository;
 import com.example.attendancesystem.Service.AttendanceService;
+import com.example.attendancesystem.Service.CourseService;
+import com.example.attendancesystem.util.SecurityUtil;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +24,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/attendance")
@@ -29,6 +35,12 @@ public class AttendanceController {
 
     @Autowired
     private CourseRepository courseRepository;
+
+    @Autowired
+    private CourseService courseService;
+
+    @Autowired
+    private StudentRepository studentRepository;
 
     // 签到
     @PostMapping("/checkin")
@@ -76,7 +88,7 @@ public class AttendanceController {
         }
     }
 
-    // 分页+筛选考勤记录
+    // 分页+筛选考勤记录（数据隔离）
     @GetMapping("/list")
     public Result<Page<Attendance>> listAttendances(
             @RequestParam(required = false) Integer courseId,
@@ -88,24 +100,71 @@ public class AttendanceController {
             @RequestParam(defaultValue = "desc") String direction) {
         Sort.Direction dir = direction.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
         Pageable pageable = PageRequest.of(page, size, Sort.by(dir, sortBy));
-        Page<Attendance> pageResult = attendanceService.searchAttendances(courseId, startDate, endDate, pageable);
+
+        User currentUser = SecurityUtil.getCurrentUser();
+        Page<Attendance> pageResult;
+
+        if (SecurityUtil.isTeacher()) {
+            // 教师：只看自己课程的考勤
+            pageResult = attendanceService.searchAttendancesByTeacher(
+                    currentUser.getId(), courseId, startDate, endDate, pageable);
+        } else {
+            // 学生：只看自己的考勤
+            Optional<Student> studentOpt = SecurityUtil.getCurrentStudent(studentRepository);
+            if (studentOpt.isPresent()) {
+                pageResult = attendanceService.getAttendancesByStudentPaged(
+                        studentOpt.get().getId(), pageable);
+            } else {
+                // 学生未关联 Student 记录，返回空
+                pageResult = Page.empty(pageable);
+            }
+        }
         return Result.success(pageResult);
     }
 
-    // 获取所有课程（用于下拉筛选）
+    // 获取课程列表（数据隔离：教师只看自己的课程，学生只看自己参与的课程）
     @GetMapping("/courses")
     public Result<List<Course>> getAllCourses() {
-        return Result.success(courseRepository.findAll());
+        User currentUser = SecurityUtil.getCurrentUser();
+        List<Course> courses;
+        if (SecurityUtil.isTeacher()) {
+            courses = courseRepository.findByTeacherId(currentUser.getId());
+        } else {
+            // 学生：看自己考勤记录中的课程
+            Optional<Student> studentOpt = SecurityUtil.getCurrentStudent(studentRepository);
+            if (studentOpt.isPresent()) {
+                courses = courseService.getActiveCoursesForStudent(studentOpt.get().getId());
+                if (courses.isEmpty()) {
+                    courses = courseRepository.findAll(); // 无考勤记录时显示全部课程
+                }
+            } else {
+                courses = courseRepository.findAll();
+            }
+        }
+        return Result.success(courses);
     }
 
-    // 导出 Excel
+    // 导出 Excel（数据隔离）
     @GetMapping("/export")
     public void exportAttendances(
             @RequestParam(required = false) Integer courseId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             HttpServletResponse response) throws IOException {
-        List<Attendance> list = attendanceService.exportAttendances(courseId, startDate, endDate);
+
+        User currentUser = SecurityUtil.getCurrentUser();
+        List<Attendance> list;
+        if (SecurityUtil.isTeacher()) {
+            list = attendanceService.exportAttendancesByTeacher(
+                    currentUser.getId(), courseId, startDate, endDate);
+        } else {
+            Optional<Student> studentOpt = SecurityUtil.getCurrentStudent(studentRepository);
+            if (studentOpt.isPresent()) {
+                list = attendanceService.getAttendancesByStudent(studentOpt.get().getId());
+            } else {
+                list = List.of();
+            }
+        }
 
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("考勤记录");
@@ -151,7 +210,6 @@ public class AttendanceController {
                 case "present": statusLabel = "正常"; break;
                 case "absent": statusLabel = "缺勤"; break;
                 case "late": statusLabel = "迟到"; break;
-                case "early_leave": statusLabel = "早退"; break;
             }
             row.createCell(5).setCellValue(statusLabel);
             row.createCell(6).setCellValue(a.getSeatPosition() != null ? a.getSeatPosition() : "");

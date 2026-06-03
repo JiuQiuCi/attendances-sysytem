@@ -80,7 +80,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new IllegalArgumentException("课程不存在"));
 
-        if (!Set.of("present", "absent", "late", "early_leave").contains(status)) {
+        if (!Set.of("present", "absent", "late").contains(status)) {
             throw new IllegalArgumentException("无效状态: " + status);
         }
 
@@ -100,27 +100,14 @@ public class AttendanceServiceImpl implements AttendanceService {
         return attendanceRepository.save(attendance);
     }
 
-    // 签退（早退检测）
+    // 签退
     @Override
     public Attendance checkOut(Integer studentId, Integer courseId, LocalDate date) {
         Attendance attendance = attendanceRepository.findByStudentIdAndCourseIdAndAttendanceDate(studentId, courseId, date)
                 .orElseThrow(() -> new IllegalArgumentException("未找到今日签到记录，请先签到"));
 
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new IllegalArgumentException("课程不存在"));
-
-        LocalTime now = LocalTime.now();
-        LocalTime endTime = course.getEndTime();
-        if (endTime == null) {
-            throw new IllegalArgumentException("该课程未设置下课时间，无法签退");
-        }
-
-        if (now.isBefore(endTime)) {
-            attendance.setStatus("early_leave");
-        } else {
-            if (!"late".equals(attendance.getStatus())) {
-                attendance.setStatus("present");
-            }
+        if (!"late".equals(attendance.getStatus())) {
+            attendance.setStatus("present");
         }
         return attendanceRepository.save(attendance);
     }
@@ -206,5 +193,36 @@ public class AttendanceServiceImpl implements AttendanceService {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
         return attendanceRepository.findAll(spec);
+    }
+
+    // ===== 数据隔离方法 =====
+
+    @Override
+    public Page<Attendance> searchAttendancesByTeacher(Integer teacherId, Integer courseId,
+                                                        LocalDate startDate, LocalDate endDate, Pageable pageable) {
+        if (courseId != null) {
+            return attendanceRepository.findByTeacherIdAndCourseIdAndDateRange(
+                    teacherId, courseId, startDate, endDate, pageable);
+        }
+        return attendanceRepository.findByTeacherIdAndDateRange(
+                teacherId, startDate, endDate, pageable);
+    }
+
+    @Override
+    public List<Attendance> exportAttendancesByTeacher(Integer teacherId, Integer courseId,
+                                                        LocalDate startDate, LocalDate endDate) {
+        return attendanceRepository.findAllByTeacherId(teacherId);
+    }
+
+    @Override
+    public Page<Attendance> getAttendancesByStudentPaged(Integer studentId, Pageable pageable) {
+        // Use specification to build dynamic query for student
+        Specification<Attendance> spec = (root, query, cb) -> {
+            Join<Object, Object> studentJoin = root.join("student");
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(studentJoin.get("id"), studentId));
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        return attendanceRepository.findAll(spec, pageable);
     }
 }

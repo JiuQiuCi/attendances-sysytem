@@ -14,7 +14,7 @@ public interface AttendanceService {
     Attendance checkIn(Integer studentId, Integer courseId, LocalDate date);
     Attendance checkOut(Integer studentId, Integer courseId, LocalDate date);
 
-    // 手动标记考勤状态（present/absent/late/early_leave）
+    // 手动标记考勤状态（present/absent/late）
     Attendance markAttendance(Integer studentId, Integer courseId, LocalDate date, String status);
 
     // 原有方法
@@ -32,4 +32,11 @@ public interface AttendanceService {
 
     // 导出所有符合条件的考勤记录（不分页）
     List<Attendance> exportAttendances(Integer courseId, LocalDate startDate, LocalDate endDate);
+
+    // ===== 数据隔离方法 =====
+    Page<Attendance> searchAttendancesByTeacher(Integer teacherId, Integer courseId,
+                                                 LocalDate startDate, LocalDate endDate, Pageable pageable);
+    List<Attendance> exportAttendancesByTeacher(Integer teacherId, Integer courseId,
+                                                 LocalDate startDate, LocalDate endDate);
+    Page<Attendance> getAttendancesByStudentPaged(Integer studentId, Pageable pageable);
 }

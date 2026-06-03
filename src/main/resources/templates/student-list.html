@@ -56,11 +56,15 @@
         <div class="page-header">
             <img class="emblem-logo" src="/images/logo.png" alt="西南财经大学">
             <span class="page-title">学生信息管理</span>
+            <span style="font-size:0.8rem;color:var(--text-secondary);margin-left:12px;">（仅显示您所授课程的学生）</span>
         </div>
 
         <div class="toolbar">
             <div class="search-box">
                 <input type="text" id="keyword" class="search-input" placeholder="搜索学号或姓名...">
+                <select id="courseFilter" style="margin-left:6px;padding:6px 10px;border-radius:var(--radius);border:1px solid var(--border);">
+                    <option value="">全部课程</option>
+                </select>
                 <button onclick="search()" class="btn btn-primary btn-sm">搜索</button>
                 <button onclick="resetSearch()" class="btn btn-secondary btn-sm">重置</button>
             </div>
@@ -74,11 +78,17 @@
 
         <!-- 上传区域 -->
         <div class="upload-section" id="uploadSection">
+            <div style="margin-bottom:12px;display:flex;align-items:center;gap:10px;">
+                <label style="font-weight:600;white-space:nowrap;">导入到课程：</label>
+                <select id="uploadCourseFilter" style="padding:8px 12px;border-radius:var(--radius);border:1px solid var(--border);flex:1;max-width:400px;">
+                    <option value="">-- 请先选择目标课程（星期+时间段） --</option>
+                </select>
+            </div>
             <div class="upload-zone" id="uploadZone">
                 <div style="font-size:1.5rem;margin-bottom:4px;">📁</div>
                 <div><strong>点击选择文件</strong> 或拖拽 Excel 到此处</div>
                 <div style="color:var(--text-secondary);font-size:0.85rem;margin-top:4px;">
-                    支持学生名单格式：学号、姓名、性别、班级<br>.xlsx / .xls，不超过 10MB
+                    支持学生名单格式：学号、姓名、性别、班级<br>选择课程后导入，学生将自动关联到该课程时间段<br>.xlsx / .xls，不超过 10MB
                 </div>
                 <input type="file" id="fileInput" accept=".xlsx,.xls">
             </div>
@@ -125,11 +135,43 @@
 </div>
 
 <script>
-    let currentPage = 0, pageSize = 10, sortBy = 'id', direction = 'asc', keyword = '';
+    let currentPage = 0, pageSize = 10, sortBy = 'id', direction = 'asc', keyword = '', courseId = '';
+
+    // 加载课程下拉框
+    authFetch('/attendance/courses')
+        .then(res => res.json())
+        .then(result => {
+            if (result.code === 200) {
+                const sel = document.getElementById('courseFilter');
+                const uploadSel = document.getElementById('uploadCourseFilter');
+                const wdMap = { 'MONDAY':'周一','TUESDAY':'周二','WEDNESDAY':'周三','THURSDAY':'周四','FRIDAY':'周五','SATURDAY':'周六','SUNDAY':'周日' };
+                const timeToPeriod = {'08:30':1,'09:15':1,'09:25':2,'10:10':2,'10:20':3,'11:05':3,'11:15':4,'12:00':4,'13:00':5,'13:45':5,'13:55':6,'14:40':6,'14:50':7,'15:35':7,'15:45':8,'16:30':8,'16:40':9,'17:25':9,'18:30':10,'19:15':10,'19:25':11,'20:10':11,'20:20':12,'21:05':12};
+                function getLabel(c) {
+                    const wd = wdMap[c.weekDay] || '';
+                    const st = (c.startTime||'').substring(0,5);
+                    const et = (c.endTime||'').substring(0,5);
+                    const sp = timeToPeriod[st] || '';
+                    const ep = timeToPeriod[et] || '';
+                    let period = st;
+                    if (sp && ep && sp !== ep) period = '第'+sp+'-'+ep+'节';
+                    else if (sp) period = '第'+sp+'节';
+                    else if (et) period = st + '-' + et;
+                    return c.name + ' ' + wd + ' ' + period;
+                }
+                result.data.forEach(c => {
+                    const label = getLabel(c);
+                    const opt1 = document.createElement('option');
+                    opt1.value = c.id; opt1.text = label; sel.appendChild(opt1);
+                    const opt2 = document.createElement('option');
+                    opt2.value = c.id; opt2.text = label; uploadSel.appendChild(opt2);
+                });
+            }
+        });
 
     function loadData() {
         let url = `/student/list?page=${currentPage}&size=${pageSize}&sortBy=${sortBy}&direction=${direction}`;
         if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+        if (courseId) url += `&courseId=${courseId}`;
         authFetch(url)
             .then(res => res.json())
             .then(result => {
@@ -177,8 +219,8 @@
         }
     }
 
-    function search() { keyword = document.getElementById('keyword').value; currentPage = 0; loadData(); }
-    function resetSearch() { document.getElementById('keyword').value = ''; keyword = ''; currentPage = 0; loadData(); }
+    function search() { keyword = document.getElementById('keyword').value; courseId = document.getElementById('courseFilter').value; currentPage = 0; loadData(); }
+    function resetSearch() { document.getElementById('keyword').value = ''; document.getElementById('courseFilter').value = ''; keyword = ''; courseId = ''; currentPage = 0; loadData(); }
     function addStudent() { window.location.href = '/student/form'; }
     function editStudent(id) { window.location.href = `/student/form?id=${id}`; }
 
@@ -255,10 +297,13 @@
         const ext = file.name.split('.').pop().toLowerCase();
         if (!['xlsx','xls'].includes(ext)) { alert('不支持的文件格式: .' + ext); return; }
         if (file.size > 10*1024*1024) { alert('文件大小超过 10MB 限制'); return; }
+        const courseId = document.getElementById('uploadCourseFilter').value;
+        if (!courseId) { alert('请先选择目标课程（包含具体星期和时间段）'); return; }
         resetUploadUI();
         progressWrap.classList.add('show');
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('courseId', courseId);
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/file/upload');
         xhr.setRequestHeader('X-XSRF-TOKEN', getCsrfToken());
@@ -305,7 +350,15 @@
                 errorBody.appendChild(tr);
             });
         } else { errorToggle.style.display = 'none'; }
-        if (d.successCount > 0) loadData();
+        if (d.successCount > 0) {
+            // Auto-set the course filter to match the uploaded course
+            const uploadedCourseId = document.getElementById('uploadCourseFilter').value;
+            if (uploadedCourseId) {
+                document.getElementById('courseFilter').value = uploadedCourseId;
+                courseId = uploadedCourseId;
+            }
+            loadData();
+        }
     }
 
     function toggleErrors() {

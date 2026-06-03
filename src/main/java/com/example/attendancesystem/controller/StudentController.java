@@ -3,6 +3,7 @@ package com.example.attendancesystem.controller;
 import com.example.attendancesystem.common.Result;
 import com.example.attendancesystem.entity.Student;
 import com.example.attendancesystem.Service.StudentService;
+import com.example.attendancesystem.util.SecurityUtil;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @RestController
@@ -26,7 +26,7 @@ public class StudentController {
     @Autowired
     private StudentService studentService;
 
-    // 新增学生（包含新字段）
+    // 新增学生
     @PostMapping("/add")
     public Result<Student> addStudent(@RequestBody Student student) {
         try {
@@ -50,17 +50,26 @@ public class StudentController {
         }
     }
 
-    // 分页 + 搜索 + 排序
+    // 分页 + 搜索 + 排序（数据隔离：教师只看自己课程的学生）
     @GetMapping("/list")
     public Result<Page<Student>> listStudents(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String direction) {
+            @RequestParam(defaultValue = "asc") String direction,
+            @RequestParam(required = false) Integer courseId) {
         Sort.Direction dir = direction.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
         Pageable pageable = PageRequest.of(page, size, Sort.by(dir, sortBy));
-        Page<Student> studentPage = studentService.searchStudents(keyword, pageable);
+
+        // 数据隔离：教师只显示自己课程的学生
+        Integer teacherId = SecurityUtil.getCurrentUser().getId();
+        Page<Student> studentPage;
+        if (courseId != null) {
+            studentPage = studentService.searchStudentsByTeacherAndCourse(teacherId, courseId, keyword, pageable);
+        } else {
+            studentPage = studentService.searchStudentsByTeacher(teacherId, keyword, pageable);
+        }
         return Result.success(studentPage);
     }
 
@@ -79,16 +88,25 @@ public class StudentController {
         return Result.success("删除成功");
     }
 
-    // 快速搜索（用于下拉选择）
+    // 快速搜索（数据隔离：教师只看自己课程的学生）
     @GetMapping("/quick-search")
-    public Result<List<Student>> quickSearch(@RequestParam String q) {
-        return Result.success(studentService.quickSearch(q));
+    public Result<List<Student>> quickSearch(@RequestParam String q,
+                                              @RequestParam(required = false) Integer courseId) {
+        Integer teacherId = SecurityUtil.getCurrentUser().getId();
+        List<Student> students;
+        if (courseId != null) {
+            students = studentService.quickSearchByTeacherAndCourse(teacherId, courseId, q);
+        } else {
+            students = studentService.quickSearchByTeacher(teacherId, q);
+        }
+        return Result.success(students);
     }
 
-    // 导出 Excel
+    // 导出 Excel（数据隔离：教师只导出自己课程的学生）
     @GetMapping("/export")
     public void exportStudents(HttpServletResponse response) throws IOException {
-        List<Student> list = studentService.getAllStudents();
+        Integer teacherId = SecurityUtil.getCurrentUser().getId();
+        List<Student> list = studentService.getAllStudentsByTeacher(teacherId);
 
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("学生名单");
@@ -142,6 +160,13 @@ public class StudentController {
         response.setHeader("Content-Disposition", "attachment; filename=students.xlsx");
         workbook.write(response.getOutputStream());
         workbook.close();
+    }
+
+    // 获取指定课程的所有学生（用于手动点名）
+    @GetMapping("/by-course/{courseId}")
+    public Result<List<Student>> getStudentsByCourse(@PathVariable Integer courseId) {
+        Integer teacherId = SecurityUtil.getCurrentUser().getId();
+        return Result.success(studentService.getAllStudentsByTeacherAndCourse(teacherId, courseId));
     }
 
     // 批量删除

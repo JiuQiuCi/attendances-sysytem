@@ -5,680 +5,736 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>考勤管理 - 西南财经大学考勤系统</title>
     <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.bootcdn.net/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        .page-wrap { max-width: 1400px; margin: 30px auto; padding: 20px; }
+        .page-wrap { max-width: 1400px; margin: 0 auto; padding: 20px; }
 
-        /* Upload section */
-        .upload-section {
-            margin-bottom: 20px;
-            padding: 20px;
-            border: 2px dashed var(--border);
-            border-radius: var(--radius-lg);
-            background: var(--bg);
-            display: none;
-            transition: all var(--transition);
+        /* ===== Top bar ===== */
+        .topbar {
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+            background: rgba(255,255,255,0.82); backdrop-filter: blur(14px);
+            border-radius: var(--radius-xl); padding: 10px 24px; margin-bottom: 16px;
+            box-shadow: var(--shadow-md); border: 1px solid rgba(255,255,255,0.5);
         }
-        .upload-section.show { display: block; }
-        .upload-zone {
-            text-align: center;
-            padding: 30px 20px;
-            border-radius: var(--radius);
-            background: var(--bg-white);
-            cursor: pointer;
-            transition: all var(--transition);
-            border: 2px dashed var(--primary);
-        }
-        .upload-zone:hover, .upload-zone.dragover {
-            background: var(--primary-light);
-            border-color: var(--primary-hover);
-        }
-        .upload-zone .upload-icon { font-size: 2.5rem; margin-bottom: 8px; }
-        .upload-zone .upload-hint { color: var(--text-secondary); font-size: 0.85rem; }
-        .upload-zone input[type=file] { display: none; }
+        .topbar .tb-left { display: flex; align-items: center; gap: 14px; }
+        .topbar .tb-right { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: var(--text-secondary); }
+        .topbar .back-link { color: var(--text-secondary); font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 6px 12px; border-radius: var(--radius-full); transition: all var(--transition); cursor: pointer; }
+        .topbar .back-link:hover { background: var(--bg); color: var(--primary); }
+        .topbar .tb-title { font-weight: 700; font-size: 1.05rem; color: var(--text); display: flex; align-items: center; gap: 8px; }
+        .topbar .tb-title::before { content: ''; display: inline-block; width: 3px; height: 22px; background: var(--primary-gradient); border-radius: 2px; }
+        .topbar .tb-role { font-size: 0.75rem; padding: 3px 10px; border-radius: var(--radius-full); background: var(--primary-light); color: var(--primary); font-weight: 600; }
+        .tb-sep { width: 1px; height: 24px; background: var(--border); border-radius: 1px; }
 
-        /* Progress bar */
-        .progress-wrap {
-            display: none;
-            margin-top: 14px;
-        }
-        .progress-wrap.show { display: block; }
-        .progress-bar-outer {
-            height: 10px;
-            background: var(--border);
-            border-radius: var(--radius-full);
-            overflow: hidden;
-        }
-        .progress-bar-inner {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, var(--primary), #005A9E);
-            border-radius: var(--radius-full);
-            transition: width 0.3s ease;
-        }
-        .progress-text {
-            text-align: center;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-top: 6px;
+        /* ===== Main card ===== */
+        .main-card {
+            background: rgba(255,255,255,0.68); backdrop-filter: blur(12px);
+            border-radius: var(--radius-xl); border: 1px solid rgba(255,255,255,0.5);
+            box-shadow: var(--shadow-md); overflow: hidden;
         }
 
-        /* Import result */
-        .import-result {
-            display: none;
-            margin-top: 16px;
-            padding: 16px;
-            border-radius: var(--radius);
-            background: var(--bg-white);
-            border: 1px solid var(--border);
+        /* ===== Tabs ===== */
+        .tabs { display: flex; border-bottom: 1px solid var(--border); background: rgba(248,250,252,0.5); }
+        .tabs .tab {
+            padding: 14px 28px; border: none; background: none; cursor: pointer;
+            font-size: 0.95rem; font-weight: 600; color: var(--text-secondary);
+            border-bottom: 3px solid transparent; margin-bottom: -1px;
+            transition: all var(--transition); font-family: var(--font);
+            display: flex; align-items: center; gap: 6px;
         }
-        .import-result.show { display: block; }
-        .import-summary {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
+        .tabs .tab:hover { color: var(--primary); background: rgba(0,59,113,0.03); }
+        .tabs .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .tabs .tab .tab-badge {
+            font-size: 0.7rem; padding: 2px 8px; border-radius: var(--radius-full);
+            background: var(--border); color: var(--text-secondary); font-weight: 500;
         }
-        .import-summary span { font-weight: 700; }
-        .import-summary .suc { color: var(--success); }
-        .import-summary .fail { color: var(--danger); }
-        .error-table {
-            width: 100%;
-            font-size: 0.82rem;
-            margin-top: 10px;
+        .tabs .tab.active .tab-badge { background: var(--primary-light); color: var(--primary); }
+
+        /* ===== Tab panels ===== */
+        .tab-panel { display: none; padding: 20px 24px; animation: fadeIn 0.25s ease; }
+        .tab-panel.active { display: block; }
+
+        /* ===== Inline stats strip ===== */
+        .stats-strip {
+            display: flex; gap: 20px; flex-wrap: wrap; align-items: center;
+            padding: 12px 16px; margin-bottom: 16px;
+            background: linear-gradient(135deg, #F8FAFD, #EEF2F7);
+            border-radius: var(--radius-lg); border: 1px solid var(--border);
         }
-        .error-table th {
-            font-size: 0.75rem;
-            padding: 8px 10px;
+        .stats-strip .ss-item { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+        .stats-strip .ss-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .ss-dot.present { background: #2E7D32; }
+        .ss-dot.late { background: #E65100; }
+        .ss-dot.absent { background: #C62828; }
+        .ss-dot.total { background: var(--primary); }
+        .stats-strip .ss-num { font-weight: 700; }
+        .stats-strip .ss-lbl { color: var(--text-secondary); font-size: 0.82rem; }
+        .stats-strip .ss-divider { width: 1px; height: 20px; background: var(--border); }
+
+        /* ===== Filter row (inside tab) ===== */
+        .filter-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
+        .filter-row .fr-group { display: flex; flex-direction: column; gap: 3px; }
+        .filter-row .fr-group label { font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; }
+        .filter-row select, .filter-row input[type="date"] {
+            padding: 8px 12px; border-radius: var(--radius); border: 1.5px solid var(--border);
+            font-size: 0.88rem; background: #fff; font-family: var(--font); transition: all var(--transition);
         }
-        .error-table td {
-            padding: 6px 10px;
-            word-break: break-all;
+        .filter-row select:focus, .filter-row input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(0,59,113,0.08); }
+        .filter-row .fr-qf { display: flex; gap: 4px; }
+        .filter-row .fr-qf button {
+            padding: 8px 14px; border: 1px solid var(--border); background: #fff; border-radius: var(--radius-full);
+            font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); cursor: pointer; transition: all var(--transition);
         }
-        .collapse-header {
-            cursor: pointer;
-            font-weight: 700;
-            color: var(--danger);
-            font-size: 0.88rem;
-            margin-top: 10px;
-            user-select: none;
+        .filter-row .fr-qf button:hover { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+        .filter-row .fr-qf button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .filter-row .fr-actions { display: flex; gap: 6px; align-items: flex-end; }
+
+        /* ===== Batch bar ===== */
+        .batch-bar {
+            display: none; align-items: center; gap: 10px; flex-wrap: wrap;
+            padding: 10px 16px; margin-bottom: 14px; background: #fff; border-radius: var(--radius-lg);
+            border: 1px solid var(--border); animation: slideUp 0.25s ease;
+        }
+        .batch-bar.show { display: flex; }
+        .batch-bar .bb-count { font-weight: 700; font-size: 0.88rem; color: var(--primary); background: var(--primary-light); padding: 4px 12px; border-radius: var(--radius-full); }
+        .batch-bar select, .batch-bar input[type="date"] { padding: 6px 10px; border-radius: var(--radius); border: 1px solid var(--border); font-size: 0.85rem; font-family: var(--font); }
+
+        /* ===== Date cards ===== */
+        .date-card { background: #fff; border-radius: var(--radius-lg); border: 1px solid var(--border); margin-bottom: 10px; overflow: hidden; transition: all var(--transition); }
+        .date-card:hover { border-color: #B0C4DE; }
+        .date-card.expanded { border-color: #90B4D0; box-shadow: var(--shadow); }
+        .date-card-hd { display: flex; align-items: center; padding: 14px 18px; cursor: pointer; gap: 14px; flex-wrap: wrap; user-select: none; transition: background var(--transition); }
+        .date-card-hd:hover { background: #FAFBFC; }
+        .date-card-hd .dc-date { font-weight: 700; font-size: 1rem; color: var(--primary); min-width: 100px; display: flex; align-items: center; gap: 6px; }
+        .date-card-hd .dc-wd { font-size: 0.78rem; padding: 2px 10px; border-radius: var(--radius-full); font-weight: 600; flex-shrink: 0; }
+        .dc-wd.weekday { background: #E8EDF5; color: var(--primary); }
+        .dc-wd.weekend { background: #FFF3E0; color: #E65100; }
+        .date-card-hd .dc-courses { flex: 1; font-size: 0.88rem; color: #555; min-width: 180px; }
+        .dc-courses .course-tag { display: inline-block; padding: 2px 10px; background: var(--primary-light); border-radius: var(--radius-full); font-size: 0.8rem; color: var(--primary); margin: 2px 4px; font-weight: 500; }
+        .date-card-hd .dc-stats { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+        .dc-stats .dc-stat { text-align: center; cursor: pointer; padding: 5px 12px; border-radius: var(--radius); transition: all var(--transition); min-width: 50px; }
+        .dc-stats .dc-stat:hover { transform: translateY(-1px); }
+        .dc-stat .dc-num { font-size: 1.25rem; font-weight: 700; line-height: 1.1; }
+        .dc-stat .dc-lbl { font-size: 0.7rem; color: var(--text-muted); }
+        .dc-stat.dc-present .dc-num { color: #2E7D32; } .dc-stat.dc-present:hover { background: #E8F5E9; }
+        .dc-stat.dc-late .dc-num { color: #E65100; } .dc-stat.dc-late:hover { background: #FFF3E0; }
+        .dc-stat.dc-absent .dc-num { color: #C62828; } .dc-stat.dc-absent:hover { background: #FFEBEE; }
+        .date-card-hd .dc-chevron { color: var(--text-muted); font-size: 0.75rem; transition: transform 0.3s; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--bg); }
+        .date-card.expanded .dc-chevron { transform: rotate(180deg); background: var(--primary-light); color: var(--primary); }
+        .date-card-body { display: none; border-top: 1px solid var(--border-light); }
+        .date-card.expanded .date-card-body { display: block; animation: slideDown 0.3s ease; }
+        .date-card-body table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .date-card-body thead th { background: #F8FAFD; color: var(--text-secondary); font-weight: 700; font-size: 0.78rem; padding: 10px 14px; border-bottom: 2px solid var(--border); text-align: left; text-transform: uppercase; letter-spacing: 0.4px; }
+        .date-card-body tbody td { padding: 9px 14px; border-bottom: 1px solid #F5F5F5; vertical-align: middle; }
+        .date-card-body tbody tr { transition: background var(--transition); }
+        .date-card-body tbody tr:hover { background: #F8FAFD; }
+        .date-card-body tbody tr.row-hl { background: #FFFDE7; }
+        .status-tag { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 600; }
+        .status-tag.present { background: #E8F5E9; color: #2E7D32; }
+        .status-tag.late { background: #FFF3E0; color: #E65100; }
+        .status-tag.absent { background: #FFEBEE; color: #C62828; }
+        .status-tag .tag-dot { width: 6px; height: 6px; border-radius: 50%; }
+        .status-tag.present .tag-dot { background: #2E7D32; }
+        .status-tag.late .tag-dot { background: #E65100; }
+        .status-tag.absent .tag-dot { background: #C62828; }
+        .row-act { display: flex; gap: 4px; align-items: center; }
+        .row-act select { font-size: 0.78rem; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--border); background: #fff; }
+        .btn-del-row { padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid #FECACA; background: #FFF5F5; color: #C62828; cursor: pointer; font-weight: 600; transition: all var(--transition); }
+        .btn-del-row:hover { background: #FEE2E2; }
+
+        /* ===== Roll Call tab ===== */
+        .rc-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+        .rc-toolbar select, .rc-toolbar input[type="date"] { padding: 9px 14px; border-radius: var(--radius); border: 1.5px solid var(--border); font-size: 0.9rem; background: #fff; font-family: var(--font); transition: all var(--transition); }
+        .rc-toolbar select:focus, .rc-toolbar input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(0,59,113,0.08); }
+        .rc-toolbar .rc-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+        .rc-summary { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; padding: 10px 16px; background: #fff; border-radius: var(--radius-lg); border: 1px solid var(--border); }
+        .rc-summary .rs { font-size: 0.88rem; font-weight: 600; padding: 4px 12px; border-radius: var(--radius-full); display: flex; align-items: center; gap: 4px; }
+        .rs.total { background: #F1F5F9; color: #333; }
+        .rs.present { background: #E8F5E9; color: #2E7D32; }
+        .rs.late { background: #FFF3E0; color: #E65100; }
+        .rs.absent { background: #FFEBEE; color: #C62828; }
+        .rs.unmarked { background: #F5F5F5; color: #999; }
+        .rs .rs-num { font-weight: 700; font-size: 1rem; }
+        .rc-table-wrap { max-height: 460px; overflow-y: auto; border-radius: var(--radius-lg); border: 1px solid var(--border); background: #fff; }
+        .rc-table-wrap table { width: 100%; border-collapse: collapse; }
+        .rc-table-wrap thead { position: sticky; top: 0; z-index: 2; }
+        .rc-table-wrap thead th { background: #F1F5F9; color: var(--text); font-weight: 700; font-size: 0.8rem; padding: 11px 14px; border-bottom: 2px solid var(--border); text-align: left; text-transform: uppercase; letter-spacing: 0.5px; }
+        .rc-table-wrap tbody td { padding: 10px 14px; border-bottom: 1px solid #F5F5F5; font-size: 0.9rem; vertical-align: middle; }
+        .rc-table-wrap tbody tr { transition: background var(--transition); }
+        .rc-table-wrap tbody tr:hover { background: #F8FAFD; }
+        .rc-status-group { display: flex; gap: 5px; justify-content: center; }
+        .rc-btn { flex: 1; max-width: 72px; padding: 7px 0; border-radius: var(--radius-full); border: 2px solid transparent; cursor: pointer; font-size: 0.8rem; font-weight: 700; transition: all 0.18s; text-align: center; outline: none; }
+        .rc-btn.present { background: #E8F5E9; color: #2E7D32; border-color: #C8E6C9; }
+        .rc-btn.present:hover { background: #C8E6C9; border-color: #66BB6A; transform: translateY(-1px); box-shadow: 0 3px 10px rgba(46,125,50,0.2); }
+        .rc-btn.present.active { background: #2E7D32; color: #fff; border-color: #2E7D32; box-shadow: 0 4px 14px rgba(46,125,50,0.4); animation: bounceIn 0.3s ease; }
+        .rc-btn.late { background: #FFF3E0; color: #E65100; border-color: #FFCC80; }
+        .rc-btn.late:hover { background: #FFE0B2; border-color: #FF9800; transform: translateY(-1px); box-shadow: 0 3px 10px rgba(230,81,0,0.2); }
+        .rc-btn.late.active { background: #E65100; color: #fff; border-color: #E65100; box-shadow: 0 4px 14px rgba(230,81,0,0.4); animation: bounceIn 0.3s ease; }
+        .rc-btn.absent { background: #FFEBEE; color: #B71C1C; border-color: #EF9A9A; }
+        .rc-btn.absent:hover { background: #EF9A9A; border-color: #E57373; transform: translateY(-1px); box-shadow: 0 3px 10px rgba(183,28,28,0.2); }
+        .rc-btn.absent.active { background: #C62828; color: #fff; border-color: #B71C1C; box-shadow: 0 4px 14px rgba(183,28,28,0.4); animation: bounceIn 0.3s ease; }
+
+        /* ===== Import/Export tab ===== */
+        .import-zone { text-align: center; padding: 36px 24px; border-radius: var(--radius-lg); background: #fff; cursor: pointer; border: 2px dashed #005AA5; transition: all 0.25s; margin-bottom: 16px; }
+        .import-zone:hover, .import-zone.dragover { background: #E8F0FE; border-color: #003D7A; box-shadow: 0 0 0 4px rgba(0,59,113,0.06); }
+        .import-zone .iz-icon { font-size: 2.8rem; margin-bottom: 10px; }
+        .import-zone .iz-hint { color: var(--text-muted); font-size: 0.82rem; margin-top: 6px; }
+        .import-zone input[type=file] { display: none; }
+        .progress-wrap { display: none; margin-bottom: 16px; }
+        .progress-wrap.show { display: block; animation: slideUp 0.3s ease; }
+        .progress-bar-outer { height: 8px; background: var(--border); border-radius: 10px; overflow: hidden; }
+        .progress-bar-inner { height: 100%; width: 0%; background: var(--primary-gradient); border-radius: 10px; transition: width 0.3s; }
+        .progress-txt { text-align: center; font-size: 0.82rem; color: var(--text-secondary); margin-top: 6px; font-weight: 500; }
+        .import-result { display: none; padding: 18px; border-radius: var(--radius-lg); background: #fff; border: 1px solid var(--border); }
+        .import-result.show { display: block; animation: slideUp 0.3s ease; }
+        .import-result .ir-summary { display: flex; gap: 24px; justify-content: center; margin-bottom: 8px; flex-wrap: wrap; font-weight: 700; font-size: 0.9rem; }
+        .ir-summary .suc { color: var(--success); } .ir-summary .fail { color: var(--danger); }
+
+        /* ===== QR Modal ===== */
+        .qr-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; justify-content: center; align-items: center; }
+        .qr-overlay.show { display: flex; animation: fadeIn 0.25s ease; }
+        .qr-dialog { background: #fff; border-radius: var(--radius-xl); padding: 32px 28px; width: 400px; text-align: center; box-shadow: 0 24px 80px rgba(0,0,0,0.35); animation: fadeInScale 0.3s ease; }
+        .qr-dialog .qr-tt { font-size: 1.15rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+        .qr-dialog .qr-course { font-weight: 700; color: #005AA5; margin-bottom: 4px; font-size: 0.9rem; }
+        .qr-dialog .qr-date { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 18px; }
+        .qr-dialog .qr-wrap { display: flex; justify-content: center; margin: 8px 0; padding: 16px; background: var(--bg); border-radius: var(--radius-lg); }
+        .qr-dialog .qr-hint { font-size: 0.78rem; color: var(--text-muted); margin-top: 12px; line-height: 1.5; }
+        .qr-dialog .btn-close-qr { margin-top: 16px; padding: 8px 28px; border-radius: var(--radius-full); border: 1.5px solid var(--border); background: #fff; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all var(--transition); }
+        .qr-dialog .btn-close-qr:hover { background: var(--bg); border-color: #ccc; }
+
+        /* ===== Empty state ===== */
+        .empty-state { text-align: center; padding: 48px 24px; color: var(--text-muted); }
+        .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.6; }
+        .empty-state .empty-title { font-size: 1rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
+        .empty-state .empty-desc { font-size: 0.85rem; }
+
+        /* ===== Toast ===== */
+        .toast { position: fixed; top: 24px; right: 24px; z-index: 10000; padding: 14px 22px; border-radius: var(--radius-lg); color: #fff; font-weight: 600; box-shadow: var(--shadow-xl); animation: slideUp 0.3s ease; display: flex; align-items: center; gap: 8px; max-width: 420px; }
+        .toast.success { background: var(--success-gradient); }
+        .toast.error { background: var(--danger-gradient); }
+        .toast.info { background: var(--primary-gradient); }
+
+        @media (max-width: 768px) {
+            .page-wrap { padding: 10px; }
+            .topbar { padding: 10px 16px; }
+            .tabs .tab { padding: 12px 16px; font-size: 0.85rem; }
+            .tab-panel { padding: 14px 16px; }
+            .stats-strip { gap: 10px; }
+            .filter-row { flex-direction: column; }
+            .filter-row select, .filter-row input { width: 100%; }
+            .date-card-hd { padding: 10px 14px; gap: 8px; }
+            .batch-bar { flex-direction: column; align-items: flex-start; }
+            .rc-toolbar { flex-direction: column; align-items: stretch; }
+            .rc-toolbar .rc-actions { margin-left: 0; }
         }
     </style>
 </head>
 <body>
 <script src="/js/auth-check.js"></script>
+
 <div class="page-wrap">
-    <div class="card">
-        <div class="page-header">
-            <img class="emblem-logo" src="/images/logo.png" alt="西南财经大学">
-            <span class="page-title">考勤记录管理</span>
+
+    <!-- ===== Top bar ===== -->
+    <div class="topbar">
+        <div class="tb-left">
+            <a href="/index" class="back-link">← 返回首页</a>
+            <span class="tb-sep"></span>
+            <img class="emblem-logo" src="/images/logo.png" alt="SWUFE" style="width:32px;height:32px;">
+            <span class="tb-title">考勤记录管理</span>
+            <span class="tb-role" id="scopeNote"></span>
+        </div>
+        <div class="tb-right" id="clockDisplay"></div>
+    </div>
+
+    <!-- ===== QR Modal ===== -->
+    <div class="qr-overlay" id="qrOverlay">
+        <div class="qr-dialog">
+            <div class="qr-tt">📱 扫码签到</div>
+            <div class="qr-course" id="qrCourseLabel"></div>
+            <div class="qr-date" id="qrDateLabel"></div>
+            <div class="qr-wrap" id="qrContainer"></div>
+            <div class="qr-hint">学生用手机扫描二维码即可完成签到<br>签到链接已包含课程和日期信息</div>
+            <button class="btn-close-qr" onclick="closeQR()">关闭</button>
+        </div>
+    </div>
+
+    <!-- ===== Main card with tabs ===== -->
+    <div class="main-card">
+        <div class="tabs">
+            <button class="tab active" data-tab="records">📋 考勤记录 <span class="tab-badge" id="recordsCount"></span></button>
+            <button class="tab" data-tab="rollcall">📝 花名册点名</button>
+            <button class="tab" data-tab="import">📤 导入导出</button>
         </div>
 
-        <!-- 筛选栏 -->
-        <div class="filter-bar">
-            <div class="filter-group">
-                <label>课程</label>
-                <select id="courseFilter">
-                    <option value="">全部课程</option>
+        <!-- ========== TAB 1: 考勤记录 ========== -->
+        <div class="tab-panel active" id="panel-records">
+            <!-- Inline stats -->
+            <div class="stats-strip" id="statsStrip">
+                <div class="ss-item"><span class="ss-dot total"></span><span class="ss-num" id="sTotal">--</span><span class="ss-lbl">总记录</span></div>
+                <span class="ss-divider"></span>
+                <div class="ss-item"><span class="ss-dot present"></span><span class="ss-num" id="sPresent">--</span><span class="ss-lbl">到课</span></div>
+                <div class="ss-item"><span class="ss-dot late"></span><span class="ss-num" id="sLate">--</span><span class="ss-lbl">迟到</span></div>
+                <div class="ss-item"><span class="ss-dot absent"></span><span class="ss-num" id="sAbsent">--</span><span class="ss-lbl">缺勤</span></div>
+                <span class="ss-divider"></span>
+                <div class="ss-item"><span style="font-weight:700;color:#005AA5;font-size:1.1rem;" id="sRate">--</span><span class="ss-lbl">出勤率</span></div>
+            </div>
+
+            <!-- Filter row -->
+            <div class="filter-row">
+                <div class="fr-group">
+                    <label>课程</label>
+                    <select id="courseFilter"><option value="">全部课程</option></select>
+                </div>
+                <div class="fr-group">
+                    <label>起始日期</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div class="fr-group">
+                    <label>结束日期</label>
+                    <input type="date" id="endDate">
+                </div>
+                <div class="fr-group">
+                    <label>快速筛选</label>
+                    <div class="fr-qf">
+                        <button onclick="setQuickFilter('today')">今天</button>
+                        <button onclick="setQuickFilter('week')">本周</button>
+                        <button onclick="setQuickFilter('month')">本月</button>
+                    </div>
+                </div>
+                <div class="fr-actions">
+                    <button class="btn btn-primary btn-sm" onclick="search()">🔍 查询</button>
+                </div>
+            </div>
+
+            <!-- Batch bar -->
+            <div class="batch-bar" id="batchBar">
+                <span class="bb-count">已选 <span id="selectedCount">0</span> 条</span>
+                <select id="batchStatus"><option value="">批量改状态</option><option value="present">✅ 到课</option><option value="absent">❌ 缺勤</option><option value="late">⏰ 迟到</option></select>
+                <button class="btn btn-primary btn-sm" onclick="batchChangeStatus()">应用</button>
+                <input type="date" id="batchDate" placeholder="改日期">
+                <button class="btn btn-sm" style="background:#E8EDF5;color:var(--primary);border:1px solid #D0D5DD;" onclick="batchSetDate()">改日期</button>
+                <button class="btn btn-danger btn-sm" onclick="batchDelete()">🗑 批量删除</button>
+            </div>
+
+            <!-- Date cards -->
+            <div id="dateCardsContainer">
+                <div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-title">加载中...</div></div>
+            </div>
+            <div class="pagination" id="pagination"></div>
+        </div>
+
+        <!-- ========== TAB 2: 花名册点名 ========== -->
+        <div class="tab-panel" id="panel-rollcall">
+            <div class="rc-toolbar">
+                <select id="rollCallCourse" onchange="loadRollCallStudents()" style="min-width:240px;">
+                    <option value="">-- 选择课程 --</option>
                 </select>
-            </div>
-            <div class="filter-group">
-                <label>快速筛选</label>
-                <div style="display:flex;gap:6px;">
-                    <button type="button" class="btn btn-primary btn-sm" onclick="setQuickFilter('today')">今天</button>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="setQuickFilter('week')">本周</button>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="setQuickFilter('month')">本月</button>
+                <input type="date" id="rollCallDate" onchange="loadRollCallStudents()">
+                <button class="btn btn-outline btn-sm" onclick="batchSetRollCall('present')">✅ 全部到课</button>
+                <button class="btn btn-outline btn-sm" onclick="batchSetRollCall('absent')">❌ 全部缺勤</button>
+                <div class="rc-actions">
+                    <button class="btn btn-primary btn-sm" onclick="showQRCode()">📱 生成签到码</button>
+                    <button class="btn btn-success btn-sm" onclick="submitAllRollCall()">💾 全部保存</button>
                 </div>
             </div>
-            <div class="filter-group">
-                <label>起始日期</label>
-                <input type="date" id="startDate">
+
+            <div class="rc-summary" id="rollCallSummary" style="display:none;">
+                <span class="rs total">👥 总人数 <span class="rs-num" id="statTotal">0</span></span>
+                <span class="rs present">✅ 到课 <span class="rs-num" id="statPresent">0</span></span>
+                <span class="rs late">⏰ 迟到 <span class="rs-num" id="statLate">0</span></span>
+                <span class="rs absent">❌ 缺勤 <span class="rs-num" id="statAbsent">0</span></span>
+                <span class="rs unmarked">⬜ 未标记 <span class="rs-num" id="statUnmarked">0</span></span>
             </div>
-            <div class="filter-group">
-                <label>结束日期</label>
-                <input type="date" id="endDate">
+
+            <div class="rc-table-wrap" id="rollCallListWrap">
+                <table>
+                    <thead><tr><th style="width:50px;">#</th><th>学号</th><th>姓名</th><th style="width:240px;text-align:center;">出勤状态</th></tr></thead>
+                    <tbody id="rollCallGrid"></tbody>
+                </table>
             </div>
-            <div class="filter-group">
-                <button class="btn btn-primary" onclick="search()">筛选</button>
-            </div>
-            <div class="filter-group" style="flex-direction:row;align-items:center;gap:8px;">
-                <button class="btn btn-primary" onclick="exportData()">导出Excel</button>
-                <button class="btn btn-success" onclick="toggleUpload()">导入Excel</button>
+            <div class="empty-state" id="rollCallEmpty">
+                <div class="empty-icon">📋</div>
+                <div class="empty-title">请选择课程和日期</div>
+                <div class="empty-desc">加载该时间段的学生名单开始点名</div>
             </div>
         </div>
 
-        <!-- 快捷打卡 -->
-        <div class="quick-action-bar">
-            <div class="item" style="position:relative;">
-                <label>学生</label>
-                <input type="text" id="studentSearch" placeholder="输入姓名或学号搜索..." autocomplete="off"
-                       oninput="searchStudent()" onfocus="searchStudent()">
-                <div id="studentDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:999;
-                    background:var(--bg-white);border:1px solid var(--border);border-radius:var(--radius);
-                    max-height:200px;overflow-y:auto;box-shadow:var(--shadow-lg);"></div>
-                <input type="hidden" id="selectedStudentId" value="">
+        <!-- ========== TAB 3: 导入导出 ========== -->
+        <div class="tab-panel" id="panel-import">
+            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px;">
+                <div class="fr-group" style="flex:1;max-width:420px;">
+                    <label>导入到课程（可选）</label>
+                    <select id="uploadCourseFilter" style="padding:8px 12px;border-radius:var(--radius);border:1.5px solid var(--border);font-size:0.88rem;background:#fff;">
+                        <option value="">-- 不指定课程 --</option>
+                    </select>
+                </div>
+                <div class="fr-actions" style="align-self:flex-end;">
+                    <button class="btn btn-primary btn-sm" onclick="exportData()">📥 导出 Excel</button>
+                </div>
             </div>
-            <div class="item">
-                <label>课程</label>
-                <select id="courseIdSelect"></select>
-            </div>
-            <div class="item">
-                <label>日期</label>
-                <input type="date" id="attDate" th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}">
-            </div>
-            <button class="btn btn-success" onclick="markStatus('present')">签到</button>
-            <button class="btn btn-danger" onclick="markStatus('absent')">缺勤</button>
-            <button class="btn btn-warning" onclick="markStatus('late')">迟到</button>
-            <button class="btn" style="background:var(--info);color:#fff;" onclick="markStatus('early_leave')">早退</button>
-        </div>
 
-        <!-- 上传区域 -->
-        <div class="upload-section" id="uploadSection">
-            <div class="upload-zone" id="uploadZone">
-                <div class="upload-icon">📁</div>
+            <div class="import-zone" id="uploadZone">
+                <div class="iz-icon">📁</div>
                 <div><strong>点击选择文件</strong> 或拖拽 Excel 文件到此处</div>
-                <div class="upload-hint">
-                    支持两种格式：<br>
-                    ① 学生名单：学号、姓名、性别、班级<br>
-                    ② 考勤记录：studentId、courseName、attendanceDate、status<br>
-                    支持 .xlsx / .xls 格式，文件大小不超过 10MB
-                </div>
+                <div class="iz-hint">支持 .xlsx / .xls，不超过 10MB</div>
                 <input type="file" id="fileInput" accept=".xlsx,.xls">
             </div>
+
             <div class="progress-wrap" id="progressWrap">
-                <div class="progress-bar-outer">
-                    <div class="progress-bar-inner" id="progressBar"></div>
-                </div>
-                <div class="progress-text" id="progressText">上传中 0%</div>
+                <div class="progress-bar-outer"><div class="progress-bar-inner" id="progressBar"></div></div>
+                <div class="progress-txt" id="progressText">上传中 0%</div>
             </div>
+
             <div class="import-result" id="importResult">
-                <div class="import-summary">
-                    <span>总行数: <span id="totalRows">0</span></span>
-                    <span class="suc">成功: <span id="successCount">0</span></span>
-                    <span class="fail">失败: <span id="failureCount">0</span></span>
+                <div class="ir-summary">
+                    <span>📊 总行数: <span id="totalRows">0</span></span>
+                    <span class="suc">✅ 成功: <span id="successCount">0</span></span>
+                    <span class="fail">❌ 失败: <span id="failureCount">0</span></span>
                 </div>
-                <div class="collapse-header" id="errorToggle" style="display:none;" onclick="toggleErrors()">
-                    ⚠ 查看导入失败详情 ▼
-                </div>
+                <div style="cursor:pointer;font-weight:700;color:var(--danger);font-size:0.85rem;user-select:none;" id="errorToggle" onclick="toggleErrors()">查看失败详情 ▾</div>
                 <div class="table-wrapper" id="errorTableWrap" style="display:none;margin-top:8px;">
-                    <table class="error-table">
-                        <thead><tr><th>行号</th><th>字段</th><th>错误信息</th></tr></thead>
-                        <tbody id="errorTableBody"></tbody>
-                    </table>
+                    <table style="font-size:0.82rem;"><thead><tr><th>行号</th><th>字段</th><th>错误信息</th></tr></thead><tbody id="errorTableBody"></tbody></table>
                 </div>
             </div>
         </div>
-
-        <!-- 批量操作栏 -->
-        <div id="batchBar" style="display:none;margin-bottom:6px;padding:8px 12px;background:var(--bg);border-radius:var(--radius);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-            <span style="font-weight:700;font-size:0.9rem;">已选 <span id="selectedCount">0</span> 条</span>
-            <select id="batchStatus" style="width:100px;">
-                <option value="">批量改状态</option>
-                <option value="present">正常</option>
-                <option value="absent">缺勤</option>
-                <option value="late">迟到</option>
-                <option value="early_leave">早退</option>
-            </select>
-            <button class="btn btn-primary btn-sm" onclick="batchChangeStatus()">应用</button>
-            <button class="btn btn-success btn-sm" onclick="batchSetDate()">批量改日期</button>
-            <input type="date" id="batchDate" style="width:130px;">
-            <button class="btn btn-danger btn-sm" onclick="batchDelete()">批量删除</button>
-        </div>
-
-        <!-- 考勤表格 -->
-        <div class="table-wrapper">
-            <table id="attTable">
-                <thead>
-                <tr>
-                    <th style="width:36px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="全选"></th>
-                    <th data-sort="attendanceDate">日期</th>
-                    <th data-sort="student.name">学生</th>
-                    <th>学号</th>
-                    <th data-sort="course.name">课程</th>
-                    <th data-sort="status">状态</th>
-                    <th data-sort="seatPosition">座位</th>
-                    <th>操作</th>
-                </tr>
-                </thead>
-                <tbody id="tableBody">
-                <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);">加载中...</td></tr>
-                </tbody>
-            </table>
-        </div>
-        <div class="pagination" id="pagination"></div>
-    </div>
+    </div><!-- /main-card -->
 </div>
 
 <script>
-    let currentPage = 0, pageSize = 10, sortBy = 'attendanceDate', direction = 'desc';
-    let courseId = '', startDate = '', endDate = '';
+    // ===== Globals =====
+    let courseId = '', startDate = '', endDate = '', quickFilterActive = null;
+    let allCourses = [], rollCallStatuses = {}, rollCallStudents = [];
+    let allAttendanceData = [], selectedIds = new Set();
 
-    authFetch('/attendance/courses')
-        .then(res => res.json())
-        .then(result => {
-            if (result.code === 200) {
-                const courseFilter = document.getElementById('courseFilter');
-                const courseSelect = document.getElementById('courseIdSelect');
-                result.data.forEach(course => {
-                    [courseFilter, courseSelect].forEach(sel => {
-                        const opt = document.createElement('option');
-                        opt.value = course.id;
-                        opt.text = course.name;
-                        sel.appendChild(opt);
-                    });
-                });
-            }
+    // ===== Tab switching =====
+    document.querySelectorAll('.tabs .tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            this.classList.add('active');
+            document.getElementById('panel-' + this.dataset.tab).classList.add('active');
         });
+    });
+
+    // ===== Clock =====
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('clockDisplay').textContent =
+            now.toLocaleDateString('zh-CN', {year:'numeric',month:'long',day:'numeric',weekday:'long'}) +
+            ' ' + now.toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+    }
+    updateClock(); setInterval(updateClock, 30000);
+
+    // ===== Helpers =====
+    const timeToPeriod = {
+        '08:30':1,'09:15':1, '09:25':2,'10:10':2, '10:20':3,'11:05':3, '11:15':4,'12:00':4,
+        '13:00':5,'13:45':5, '13:55':6,'14:40':6, '14:50':7,'15:35':7, '15:45':8,'16:30':8,
+        '16:40':9,'17:25':9, '18:30':10,'19:15':10, '19:25':11,'20:10':11, '20:20':12,'21:05':12
+    };
+    const wdMap = { 'MONDAY':'周一','TUESDAY':'周二','WEDNESDAY':'周三','THURSDAY':'周四','FRIDAY':'周五','SATURDAY':'周六','SUNDAY':'周日' };
+
+    function getPeriodLabel(st, et) {
+        const s = (st||'').substring(0,5), e = (et||'').substring(0,5);
+        const sp = timeToPeriod[s]||'', ep = timeToPeriod[e]||'';
+        if (sp && ep && sp !== ep) return '第'+sp+'-'+ep+'节';
+        if (sp) return '第'+sp+'节';
+        return (s||'') + (e?'-'+e:'');
+    }
+    function getCourseLabel(c) { return c.name + ' ' + (wdMap[c.weekDay]||'') + ' ' + getPeriodLabel(c.startTime, c.endTime); }
+    function getWeekday(ds) {
+        const d = new Date(ds);
+        return { label: ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()], weekend: d.getDay()===0||d.getDay()===6 };
+    }
+
+    // ===== Toast =====
+    function showToast(msg, type) {
+        const ex = document.querySelector('.toast'); if (ex) ex.remove();
+        const t = document.createElement('div'); t.className = 'toast '+type; t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 0.3s'; }, 2500);
+        setTimeout(() => t.remove(), 2800);
+    }
+
+    // ===== Auth ready =====
+    window.addEventListener('auth:ready', function(e) {
+        document.getElementById('scopeNote').textContent = e.detail.role==='teacher'?'教师视图':'学生视图';
+    });
+
+    // ===== Init courses =====
+    authFetch('/attendance/courses').then(r=>r.json()).then(result => {
+        if (result.code===200) {
+            allCourses = result.data;
+            ['courseFilter','rollCallCourse','uploadCourseFilter'].forEach(id => {
+                const sel = document.getElementById(id); if (!sel) return;
+                result.data.forEach(c => { const o = document.createElement('option'); o.value=c.id; o.text=getCourseLabel(c); sel.appendChild(o); });
+            });
+            document.getElementById('rollCallDate').value = new Date().toISOString().slice(0,10);
+        }
+    });
+
+    // ===== TAB 1: Records =====
+    function updateStats(records) {
+        const t=records.length, p=records.filter(r=>r.status==='present').length,
+              l=records.filter(r=>r.status==='late').length, a=records.filter(r=>r.status==='absent').length;
+        document.getElementById('sTotal').textContent=t;
+        document.getElementById('sPresent').textContent=p;
+        document.getElementById('sLate').textContent=l;
+        document.getElementById('sAbsent').textContent=a;
+        document.getElementById('sRate').textContent=t>0?(p/t*100).toFixed(1)+'%':'--';
+        document.getElementById('recordsCount').textContent=t||'';
+    }
 
     function loadData() {
-        let url = `/attendance/list?page=${currentPage}&size=${pageSize}&sortBy=${sortBy}&direction=${direction}`;
-        if (courseId) url += `&courseId=${courseId}`;
-        if (startDate) url += `&startDate=${startDate}`;
-        if (endDate) url += `&endDate=${endDate}`;
-        authFetch(url)
-            .then(res => res.json())
-            .then(result => {
-                if (result.code === 200) {
-                    renderTable(result.data.content);
-                    renderPagination(result.data);
-                } else { alert(result.message); }
-            })
-            .catch(err => console.error(err));
+        let url = '/attendance/list?page=0&size=500&sortBy=attendanceDate&direction=desc';
+        if (courseId) url+='&courseId='+courseId;
+        if (startDate) url+='&startDate='+startDate;
+        if (endDate) url+='&endDate='+endDate;
+        document.getElementById('dateCardsContainer').innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-title">加载中...</div></div>';
+        authFetch(url).then(r=>r.json()).then(result => {
+            if (result.code===200 && result.data && result.data.content) {
+                allAttendanceData = result.data.content;
+                updateStats(allAttendanceData);
+                renderDateCards(allAttendanceData);
+            } else {
+                updateStats([]);
+                document.getElementById('dateCardsContainer').innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">暂无考勤数据</div><div class="empty-desc">请先在花名册点名或导入数据</div></div>';
+            }
+        }).catch(err => {
+            console.error(err);
+            document.getElementById('dateCardsContainer').innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">加载失败</div><div class="empty-desc">请刷新页面重试</div></div>';
+        });
     }
 
-    let selectedIds = new Set();
+    function groupByDate(records) {
+        const g = {};
+        records.forEach(a => {
+            const d = a.attendanceDate;
+            if (!g[d]) g[d] = { records:[], courses:new Set() };
+            g[d].records.push(a);
+            if (a.course) g[d].courses.add(getCourseLabel(a.course));
+        });
+        return Object.keys(g).sort((a,b)=>b.localeCompare(a)).map(date => ({
+            date, weekday: getWeekday(date), courses: Array.from(g[date].courses),
+            records: g[date].records, total: g[date].records.length,
+            present: g[date].records.filter(r=>r.status==='present').length,
+            late: g[date].records.filter(r=>r.status==='late').length,
+            absent: g[date].records.filter(r=>r.status==='absent').length,
+        }));
+    }
 
-    function renderTable(attendances) {
-        const tbody = document.getElementById('tableBody');
-        selectedIds.clear();
-        document.getElementById('selectAll').checked = false;
-        updateBatchBar();
-
-        if (!attendances || attendances.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);">暂无数据</td></tr>';
+    function renderDateCards(records, expandedDates) {
+        const container = document.getElementById('dateCardsContainer');
+        selectedIds.clear(); updateBatchBar();
+        if (!records || records.length===0) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">暂无考勤数据</div><div class="empty-desc">请先在花名册点名或导入数据</div></div>';
             return;
         }
-        tbody.innerHTML = '';
-        attendances.forEach(a => {
-            const row = tbody.insertRow();
-            const cb = document.createElement('input');
-            cb.type = 'checkbox';
-            cb.value = a.id;
-            cb.onchange = function() {
-                if (cb.checked) selectedIds.add(a.id); else selectedIds.delete(a.id);
-                updateBatchBar();
-            };
-            row.insertCell(0).appendChild(cb);
-
-            row.insertCell(1).innerText = a.attendanceDate;
-            row.insertCell(2).innerText = a.student ? a.student.name : '';
-            row.insertCell(3).innerText = a.student ? (a.student.studentId || '') : '';
-
-            row.insertCell(4).innerText = a.course ? a.course.name : '';
-
-            let statusText = '', badgeClass = '';
-            if (a.status === 'present') { statusText = '正常'; badgeClass = 'badge-present'; }
-            else if (a.status === 'late') { statusText = '迟到'; badgeClass = 'badge-late'; }
-            else if (a.status === 'early_leave') { statusText = '早退'; badgeClass = 'badge-early'; }
-            else if (a.status === 'absent') { statusText = '缺勤'; badgeClass = 'badge-absent'; }
-            else { statusText = a.status; }
-            row.insertCell(5).innerHTML = `<span class="badge ${badgeClass}">${statusText}</span>`;
-
-            row.insertCell(6).innerText = a.seatPosition || '';
-
-            const sid = a.student ? a.student.id : 0;
-            const cid = a.course ? a.course.id : 0;
-            const adate = a.attendanceDate;
-            row.insertCell(7).innerHTML =
-                `<select onchange="changeStatus(${a.id},${sid},${cid},'${adate}',this.value)" style="font-size:0.75rem;padding:2px 4px;width:70px;">
-                    <option value="">改状态</option>
-                    <option value="present">正常</option>
-                    <option value="absent">缺勤</option>
-                    <option value="late">迟到</option>
-                    <option value="early_leave">早退</option>
-                </select>
-                <button class="btn btn-danger btn-sm" style="margin-left:4px;" onclick="deleteRecord(${a.id})">删</button>`;
-        });
+        const groups = groupByDate(records);
+        container.innerHTML = groups.map(g => `
+            <div class="date-card" id="dc-${g.date}">
+                <div class="date-card-hd" onclick="toggleDateCard('${g.date}')">
+                    <span class="dc-date">📅 ${g.date}</span>
+                    <span class="dc-wd ${g.weekday.weekend?'weekend':'weekday'}">${g.weekday.label}</span>
+                    <span class="dc-courses">${g.courses.map(c=>'<span class="course-tag">'+c+'</span>').join(' ')}</span>
+                    <span class="dc-stats">
+                        <span class="dc-stat dc-present" title="到课" onclick="event.stopPropagation();filterDateStatus('${g.date}','present')"><div class="dc-num">${g.present}</div><div class="dc-lbl">到课</div></span>
+                        <span class="dc-stat dc-late" title="迟到" onclick="event.stopPropagation();filterDateStatus('${g.date}','late')"><div class="dc-num">${g.late}</div><div class="dc-lbl">迟到</div></span>
+                        <span class="dc-stat dc-absent" title="缺勤" onclick="event.stopPropagation();filterDateStatus('${g.date}','absent')"><div class="dc-num">${g.absent}</div><div class="dc-lbl">缺勤</div></span>
+                    </span>
+                    <span class="dc-chevron">▼</span>
+                </div>
+                <div class="date-card-body">
+                    <table><thead><tr><th style="width:36px;"><input type="checkbox" onchange="toggleDateSelectAll('${g.date}',this)"></th><th>学号</th><th>姓名</th><th>课程</th><th>状态</th><th style="width:120px;">操作</th></tr></thead>
+                    <tbody>${g.records.map(a=>`
+                        <tr id="row-${a.id}">
+                            <td><input type="checkbox" value="${a.id}" onchange="onCheckRecord(${a.id},this)"></td>
+                            <td>${a.student?(a.student.studentId||''):''}</td>
+                            <td><strong>${a.student?a.student.name:''}</strong></td>
+                            <td>${a.course?'<span class="course-tag">'+getCourseLabel(a.course)+'</span>':''}</td>
+                            <td><span class="status-tag ${a.status}"><span class="tag-dot"></span>${{present:'到课',late:'迟到',absent:'缺勤'}[a.status]||a.status}</span></td>
+                            <td><div class="row-act">
+                                <select onchange="changeStatus(${a.id},${a.student?a.student.id:0},${a.course?a.course.id:0},'${a.attendanceDate}',this.value)"><option value="">改</option><option value="present">到课</option><option value="late">迟到</option><option value="absent">缺勤</option></select>
+                                <button class="btn-del-row" onclick="deleteRecord(${a.id})">✕</button>
+                            </div></td>
+                        </tr>`).join('')}</tbody></table>
+                </div>
+            </div>`).join('');
+        if (expandedDates && expandedDates.size>0) expandedDates.forEach(d => { const c=document.getElementById('dc-'+d); if(c) c.classList.add('expanded'); });
     }
 
-    function toggleSelectAll(cb) {
-        document.querySelectorAll('#tableBody input[type=checkbox]').forEach(box => {
-            box.checked = cb.checked;
-            const id = parseInt(box.value);
-            if (cb.checked) selectedIds.add(id); else selectedIds.delete(id);
-        });
-        updateBatchBar();
+    function getExpandedDates() { const s=new Set(); document.querySelectorAll('.date-card.expanded').forEach(c=>{const id=c.id; if(id&&id.startsWith('dc-')) s.add(id.substring(3));}); return s; }
+    function toggleDateCard(d) { document.getElementById('dc-'+d).classList.toggle('expanded'); }
+    function filterDateStatus(d,status) {
+        const card=document.getElementById('dc-'+d); card.classList.add('expanded');
+        card.querySelectorAll('tbody tr').forEach(r=>{const b=r.querySelector('.status-tag'); if(b&&b.classList.contains(status)){r.classList.add('row-hl');setTimeout(()=>r.classList.remove('row-hl'),1500);}});
     }
-
-    function updateBatchBar() {
-        document.getElementById('selectedCount').textContent = selectedIds.size;
-        document.getElementById('batchBar').style.display = selectedIds.size > 0 ? 'flex' : 'none';
-    }
-
-    async function batchChangeStatus() {
-        const status = document.getElementById('batchStatus').value;
-        if (!status) { alert('请选择状态'); return; }
-        if (selectedIds.size === 0) { alert('请选择记录'); return; }
-        const statusNames = {present:'正常',absent:'缺勤',late:'迟到',early_leave:'早退'};
-        if (!confirm(`确定将 ${selectedIds.size} 条记录改为 "${statusNames[status]||status}" 吗？`)) return;
-
-        let success = 0, fail = 0;
-        for (const id of selectedIds) {
-            try {
-                const resp = await authFetch(`/attendance/${id}`).then(r => r.json());
-                if (resp.code !== 200) { fail++; continue; }
-                const a = resp.data;
-                const sid = a.student ? a.student.id : 0;
-                const cid = a.course ? a.course.id : 0;
-                const date = a.attendanceDate;
-                const markResp = await authFetch(`/attendance/mark?studentId=${sid}&courseId=${cid}&date=${date}&status=${status}`, { method: 'POST' });
-                const mr = await markResp.json();
-                if (mr.code === 200) success++; else fail++;
-            } catch(e) { fail++; }
-        }
-        alert(`批量更新完成: 成功 ${success}, 失败 ${fail}`);
-        loadData();
-    }
-
-    async function batchSetDate() {
-        const newDate = document.getElementById('batchDate').value;
-        if (!newDate) { alert('请选择日期'); return; }
-        if (selectedIds.size === 0) { alert('请选择记录'); return; }
-        if (!confirm(`确定将 ${selectedIds.size} 条记录的日期改为 "${newDate}" 吗？`)) return;
-        let success = 0, fail = 0;
-        for (const id of selectedIds) {
-            try {
-                const resp = await authFetch(`/attendance/${id}`).then(r => r.json());
-                if (resp.code !== 200) { fail++; continue; }
-                const a = resp.data;
-                const sid = a.student ? a.student.id : 0;
-                const cid = a.course ? a.course.id : 0;
-                const markResp = await authFetch(`/attendance/mark?studentId=${sid}&courseId=${cid}&date=${newDate}&status=${a.status||'present'}`, { method: 'POST' });
-                const mr = await markResp.json();
-                if (mr.code === 200) success++; else fail++;
-            } catch(e) { fail++; }
-        }
-        alert(`批量改日期完成: 成功 ${success}, 失败 ${fail}`);
-        loadData();
-    }
-
-    async function batchDelete() {
-        if (selectedIds.size === 0) { alert('请选择记录'); return; }
-        if (!confirm(`确定删除 ${selectedIds.size} 条考勤记录吗？此操作不可恢复。`)) return;
-        const resp = await authFetch('/attendance/batch', {
-            method: 'DELETE',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(Array.from(selectedIds))
-        });
-        const result = await resp.json();
-        if (result.code === 200) { alert('批量删除成功'); } else { alert(result.message); }
-        loadData();
-    }
-
-    function renderPagination(page) {
-        const div = document.getElementById('pagination');
-        div.innerHTML = '';
-        if (!page || page.totalPages <= 1) return;
-        for (let i = 0; i < page.totalPages; i++) {
-            const btn = document.createElement('button');
-            btn.innerText = i + 1;
-            if (i === currentPage) btn.classList.add('active');
-            btn.onclick = () => { currentPage = i; loadData(); };
-            div.appendChild(btn);
-        }
-    }
+    function toggleDateSelectAll(d,cb) { const card=document.getElementById('dc-'+d); card.querySelectorAll('tbody input[type=checkbox]').forEach(b=>{b.checked=cb.checked;const id=parseInt(b.value); if(cb.checked)selectedIds.add(id);else selectedIds.delete(id);}); updateBatchBar(); }
+    function onCheckRecord(id,cb) { if(cb.checked)selectedIds.add(id);else selectedIds.delete(id); updateBatchBar(); }
+    function updateBatchBar() { document.getElementById('selectedCount').textContent=selectedIds.size; const b=document.getElementById('batchBar'); if(selectedIds.size>0)b.classList.add('show');else b.classList.remove('show'); }
 
     function search() {
-        courseId = document.getElementById('courseFilter').value;
-        startDate = document.getElementById('startDate').value;
-        endDate = document.getElementById('endDate').value;
-        currentPage = 0;
-        loadData();
+        courseId=document.getElementById('courseFilter').value;
+        startDate=document.getElementById('startDate').value;
+        endDate=document.getElementById('endDate').value;
+        updateQFButtons(); loadData();
     }
-
     function setQuickFilter(type) {
-        const today = new Date();
-        const fmt = d => d.toISOString().slice(0,10);
-        if (type === 'today') { startDate = endDate = fmt(today); }
-        else if (type === 'week') {
-            const first = new Date(today);
-            first.setDate(today.getDate() - today.getDay());
-            const last = new Date(first);
-            last.setDate(first.getDate() + 6);
-            startDate = fmt(first); endDate = fmt(last);
-        } else if (type === 'month') {
-            startDate = fmt(new Date(today.getFullYear(), today.getMonth(), 1));
-            endDate = fmt(new Date(today.getFullYear(), today.getMonth() + 1, 0));
+        const today=new Date(); const fmt=d=>d.toISOString().slice(0,10);
+        if (type==='today'){startDate=endDate=fmt(today);}
+        else if (type==='week'){const f=new Date(today);f.setDate(today.getDate()-today.getDay());const l=new Date(f);l.setDate(f.getDate()+6);startDate=fmt(f);endDate=fmt(l);}
+        else if (type==='month'){startDate=fmt(new Date(today.getFullYear(),today.getMonth(),1));endDate=fmt(new Date(today.getFullYear(),today.getMonth()+1,0));}
+        document.getElementById('startDate').value=startDate; document.getElementById('endDate').value=endDate;
+        quickFilterActive=type; updateQFButtons(); search();
+    }
+    function updateQFButtons() {
+        document.querySelectorAll('.fr-qf button').forEach(b=>b.classList.remove('active'));
+        if (quickFilterActive) {
+            const map={today:'今天',week:'本周',month:'本月'};
+            document.querySelectorAll('.fr-qf button').forEach(b=>{if(b.textContent===map[quickFilterActive])b.classList.add('active');});
         }
-        document.getElementById('startDate').value = startDate;
-        document.getElementById('endDate').value = endDate;
-        search();
     }
 
-    let searchTimer = null;
-    function searchStudent() {
-        clearTimeout(searchTimer);
-        const q = document.getElementById('studentSearch').value.trim();
-        const dropdown = document.getElementById('studentDropdown');
-        if (!q) { dropdown.style.display = 'none'; return; }
-        searchTimer = setTimeout(async () => {
-            try {
-                const resp = await authFetch(`/student/quick-search?q=${encodeURIComponent(q)}`);
-                const result = await resp.json();
-                if (result.code === 200 && result.data && result.data.length > 0) {
-                    dropdown.innerHTML = result.data.map(s =>
-                        `<div style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border-light);"
-                              onmousedown="selectStudent(${s.id},'${s.name.replace(/'/g,"\\'")}','${(s.studentId||'').replace(/'/g,"\\'")}')">
-                            ${s.name} <span style="color:var(--text-muted);font-size:0.8rem;">${s.studentId||''}</span>
-                        </div>`
-                    ).join('');
-                    dropdown.style.display = 'block';
-                } else {
-                    dropdown.innerHTML = '<div style="padding:8px 12px;color:var(--text-muted);font-size:0.85rem;">无匹配学生</div>';
-                    dropdown.style.display = 'block';
-                }
-            } catch(e) { console.error(e); }
-        }, 250);
-    }
-
-    function selectStudent(id, name, sid) {
-        document.getElementById('studentSearch').value = name + ' (' + sid + ')';
-        document.getElementById('selectedStudentId').value = id;
-        document.getElementById('studentDropdown').style.display = 'none';
-    }
-
-    async function markStatus(status) {
-        const studentId = document.getElementById('selectedStudentId').value;
-        const courseIdVal = document.getElementById('courseIdSelect').value;
-        const date = document.getElementById('attDate').value;
-        if (!studentId) { alert('请先搜索并选择学生'); return; }
-        if (!courseIdVal || !date) { alert('请选择课程和日期'); return; }
-        const statusNames = {present:'签到',absent:'缺勤',late:'迟到',early_leave:'早退'};
-        const resp = await authFetch(`/attendance/mark?studentId=${studentId}&courseId=${courseIdVal}&date=${date}&status=${status}`, { method: 'POST' });
-        const result = await resp.json();
-        alert(result.message || (result.code === 200 ? '已标记: ' + (statusNames[status]||status) : result.message));
-        if (result.code === 200) loadData();
-    }
-
-    // Close dropdown on outside click
-    document.addEventListener('click', function(e) {
-        const wrap = document.querySelector('.quick-action-bar .item');
-        if (wrap && !wrap.contains(e.target)) {
-            document.getElementById('studentDropdown').style.display = 'none';
-        }
-    });
-
-    async function changeStatus(attId, studentId, courseId, date, newStatus) {
+    async function changeStatus(attId,studentId,courseId,date,newStatus) {
         if (!newStatus) return;
-        const resp = await authFetch(`/attendance/mark?studentId=${studentId}&courseId=${courseId}&date=${date}&status=${newStatus}`, { method: 'POST' });
-        const result = await resp.json();
-        if (result.code === 200) {
-            loadData();
-        } else {
-            alert(result.message);
-            loadData();
-        }
+        const resp=await authFetch('/attendance/mark?studentId='+studentId+'&courseId='+courseId+'&date='+date+'&status='+newStatus,{method:'POST'});
+        const result=await resp.json();
+        if (result.code===200) {
+            const rec=allAttendanceData.find(a=>a.id===attId); if(rec) rec.status=newStatus;
+            const expanded=getExpandedDates(), scrollY=window.scrollY;
+            renderDateCards(allAttendanceData,expanded); updateStats(allAttendanceData);
+            window.scrollTo(0,scrollY); loadRollCallStudents();
+            showToast('状态已更新','success');
+        } else { showToast(result.message||'操作失败','error'); loadData(); }
     }
-
     async function deleteRecord(id) {
         if (!confirm('确定删除该考勤记录吗？')) return;
-        const resp = await authFetch(`/attendance/${id}`, { method: 'DELETE' });
-        const result = await resp.json();
-        if (result.code === 200) { alert('删除成功'); loadData(); }
-        else alert(result.message);
+        const resp=await authFetch('/attendance/'+id,{method:'DELETE'}); const result=await resp.json();
+        if (result.code===200) {
+            allAttendanceData=allAttendanceData.filter(a=>a.id!==id);
+            const expanded=getExpandedDates(), scrollY=window.scrollY;
+            renderDateCards(allAttendanceData,expanded); updateStats(allAttendanceData);
+            window.scrollTo(0,scrollY); showToast('已删除','success');
+        } else showToast(result.message||'删除失败','error');
     }
-
+    async function batchChangeStatus() {
+        const status=document.getElementById('batchStatus').value;
+        if (!status){showToast('请选择状态','error');return;} if (selectedIds.size===0){showToast('请选择记录','error');return;}
+        const names={present:'到课',absent:'缺勤',late:'迟到'};
+        if(!confirm('确定将 '+selectedIds.size+' 条改为"'+names[status]+'"吗？'))return;
+        let s=0,f=0;
+        for(const id of selectedIds){const a=allAttendanceData.find(r=>r.id===id);if(!a){f++;continue;}try{const mr=await authFetch('/attendance/mark?studentId='+(a.student?a.student.id:0)+'&courseId='+(a.course?a.course.id:0)+'&date='+a.attendanceDate+'&status='+status,{method:'POST'}).then(r=>r.json());if(mr.code===200)s++;else f++;}catch(e){f++;}}
+        showToast('批量更新: 成功 '+s+', 失败 '+f, s>0?'success':'error'); loadData();
+    }
+    async function batchSetDate() {
+        const nd=document.getElementById('batchDate').value;
+        if(!nd||selectedIds.size===0){showToast('请选择记录和日期','error');return;}
+        let s=0,f=0;
+        for(const id of selectedIds){const a=allAttendanceData.find(r=>r.id===id);if(!a){f++;continue;}try{const mr=await authFetch('/attendance/mark?studentId='+(a.student?a.student.id:0)+'&courseId='+(a.course?a.course.id:0)+'&date='+nd+'&status='+(a.status||'present'),{method:'POST'}).then(r=>r.json());if(mr.code===200)s++;else f++;}catch(e){f++;}}
+        showToast('批量改日期: 成功 '+s+', 失败 '+f, s>0?'success':'error'); loadData();
+    }
+    async function batchDelete() {
+        if(selectedIds.size===0){showToast('请选择记录','error');return;}
+        if(!confirm('确定删除 '+selectedIds.size+' 条记录吗？不可撤销！'))return;
+        const resp=await authFetch('/attendance/batch',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify(Array.from(selectedIds))});
+        const result=await resp.json();
+        if(result.code===200)showToast('批量删除成功','success');else showToast(result.message||'删除失败','error');
+        loadData();
+    }
     function exportData() {
-        let url = `/attendance/export?`;
-        const params = [];
-        if (courseId) params.push(`courseId=${courseId}`);
-        if (startDate) params.push(`startDate=${startDate}`);
-        if (endDate) params.push(`endDate=${endDate}`);
-        window.location.href = url + params.join('&');
+        let url='/attendance/export?';const p=[];if(courseId)p.push('courseId='+courseId);if(startDate)p.push('startDate='+startDate);if(endDate)p.push('endDate='+endDate);
+        window.location.href=url+p.join('&');
     }
 
-    document.querySelectorAll('th[data-sort]').forEach(th => {
-        th.addEventListener('click', () => {
-            const field = th.getAttribute('data-sort');
-            if (sortBy === field) direction = direction === 'asc' ? 'desc' : 'asc';
-            else { sortBy = field; direction = 'asc'; }
-            loadData();
+    // ===== TAB 2: Roll Call =====
+    function loadRollCallStudents() {
+        const cid=document.getElementById('rollCallCourse').value, date=document.getElementById('rollCallDate').value;
+        const lw=document.getElementById('rollCallListWrap'), em=document.getElementById('rollCallEmpty'), sm=document.getElementById('rollCallSummary');
+        if(!cid||!date){lw.style.display='none';sm.style.display='none';em.style.display='block';em.querySelector('.empty-title').textContent='请选择课程和日期';document.getElementById('rollCallGrid').innerHTML='';rollCallStudents=[];rollCallStatuses={};return;}
+        rollCallStatuses={};
+        authFetch('/student/by-course/'+cid).then(r=>r.json()).then(async result=>{
+            if(result.code!==200||!result.data||result.data.length===0){lw.style.display='none';sm.style.display='none';em.style.display='block';em.querySelector('.empty-title').textContent='该课程暂无学生';rollCallStudents=[];return;}
+            rollCallStudents=result.data;
+            try{const ar=await authFetch('/attendance/list?courseId='+cid+'&startDate='+date+'&endDate='+date+'&size=500&page=0');const aj=await ar.json();if(aj.code===200&&aj.data&&aj.data.content){aj.data.content.forEach(a=>{if(a.student)rollCallStatuses[a.student.id]=a.status;});}}catch(e){}
+            renderRollCallGrid();
         });
-    });
-
-    // ===== File Upload with Progress =====
-    const uploadZone = document.getElementById('uploadZone');
-    const fileInput = document.getElementById('fileInput');
-    const uploadSection = document.getElementById('uploadSection');
-    const progressWrap = document.getElementById('progressWrap');
-    const progressBar = document.getElementById('progressBar');
-    const progressText = document.getElementById('progressText');
-    const importResult = document.getElementById('importResult');
-
-    function toggleUpload() {
-        uploadSection.classList.toggle('show');
-        resetUploadUI();
     }
-
-    uploadZone.addEventListener('click', () => fileInput.click());
-
-    uploadZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadZone.classList.add('dragover');
-    });
-    uploadZone.addEventListener('dragleave', () => {
-        uploadZone.classList.remove('dragover');
-    });
-    uploadZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadZone.classList.remove('dragover');
-        if (e.dataTransfer.files.length > 0) {
-            fileInput.files = e.dataTransfer.files;
-            startUpload(e.dataTransfer.files[0]);
-        }
-    });
-
-    fileInput.addEventListener('change', () => {
-        if (fileInput.files.length > 0) {
-            startUpload(fileInput.files[0]);
-        }
-    });
-
-    function startUpload(file) {
-        // Validate before upload
-        const allowedExtensions = ['xlsx', 'xls'];
-        const ext = file.name.split('.').pop().toLowerCase();
-        if (!allowedExtensions.includes(ext)) {
-            alert('不支持的文件格式: .' + ext + '，仅支持 .xlsx 和 .xls');
-            return;
-        }
-        if (file.size > 10 * 1024 * 1024) {
-            alert('文件大小 ' + (file.size / 1024 / 1024).toFixed(1) + 'MB 超过 10MB 限制');
-            return;
-        }
-
-        resetUploadUI();
-        progressWrap.classList.add('show');
-
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', '/file/upload');
-        xhr.setRequestHeader('X-XSRF-TOKEN', getCsrfToken());
-
-        xhr.upload.addEventListener('progress', (e) => {
-            if (e.lengthComputable) {
-                const pct = Math.round((e.loaded / e.total) * 100);
-                progressBar.style.width = pct + '%';
-                progressText.textContent = '上传中 ' + pct + '%';
-            }
+    function renderRollCallGrid() {
+        const tb=document.getElementById('rollCallGrid'), lw=document.getElementById('rollCallListWrap'), em=document.getElementById('rollCallEmpty');
+        tb.innerHTML='';
+        if(rollCallStudents.length===0){lw.style.display='none';em.style.display='block';updateRollCallStats();return;}
+        em.style.display='none';lw.style.display='block';
+        rollCallStudents.forEach((s,i)=>{
+            const cs=rollCallStatuses[s.id]||'';
+            const r=document.createElement('tr');
+            r.innerHTML='<td style="color:var(--text-muted);">'+(i+1)+'</td><td style="color:var(--text-muted);font-size:0.85rem;">'+(s.studentId||'')+'</td><td><strong>'+s.name+'</strong></td><td style="text-align:center;"><div class="rc-status-group"><button class="rc-btn present'+(cs==='present'?' active':'')+'" onclick="setRollStatus('+s.id+',\'present\',this)">到课</button><button class="rc-btn late'+(cs==='late'?' active':'')+'" onclick="setRollStatus('+s.id+',\'late\',this)">迟到</button><button class="rc-btn absent'+(cs==='absent'?' active':'')+'" onclick="setRollStatus('+s.id+',\'absent\',this)">缺勤</button></div></td>';
+            tb.appendChild(r);
         });
-
-        xhr.addEventListener('load', () => {
-            progressText.textContent = '处理中...';
-            setTimeout(() => {
-                progressWrap.classList.remove('show');
-                try {
-                    const result = JSON.parse(xhr.responseText);
-                    showImportResult(result);
-                } catch (e) {
-                    alert('解析响应失败');
-                }
-            }, 400);
-        });
-
-        xhr.addEventListener('error', () => {
-            progressWrap.classList.remove('show');
-            alert('上传失败，请检查网络连接');
-        });
-
-        xhr.send(formData);
+        updateRollCallStats();
+    }
+    function setRollStatus(sid,status,btn){rollCallStatuses[sid]=status;const row=btn.closest('tr');row.querySelectorAll('.rc-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');updateRollCallStats();}
+    function batchSetRollCall(status){if(!rollCallStudents.length){showToast('请先加载学生','error');return;}const labels={present:'到课',late:'迟到',absent:'缺勤'};if(!confirm('确定将所有学生设为"'+labels[status]+'"吗？'))return;rollCallStudents.forEach(s=>rollCallStatuses[s.id]=status);renderRollCallGrid();}
+    function updateRollCallStats(){
+        const t=rollCallStudents.length,p=Object.values(rollCallStatuses).filter(v=>v==='present').length,l=Object.values(rollCallStatuses).filter(v=>v==='late').length,a=Object.values(rollCallStatuses).filter(v=>v==='absent').length,u=t-p-l-a;
+        document.getElementById('statTotal').textContent=t;document.getElementById('statPresent').textContent=p;document.getElementById('statLate').textContent=l;document.getElementById('statAbsent').textContent=a;document.getElementById('statUnmarked').textContent=u;
+        document.getElementById('rollCallSummary').style.display=t>0?'flex':'none';
+    }
+    async function submitAllRollCall(){
+        const cid=document.getElementById('rollCallCourse').value,date=document.getElementById('rollCallDate').value;
+        if(!cid||!date){showToast('请选择课程和日期','error');return;}if(!rollCallStudents.length){showToast('没有学生','error');return;}
+        let s=0,f=0;
+        for(const st of rollCallStudents){const status=rollCallStatuses[st.id];if(!status)continue;try{const resp=await authFetch('/attendance/mark?studentId='+st.id+'&courseId='+cid+'&date='+date+'&status='+status,{method:'POST'});const r=await resp.json();if(r.code===200)s++;else f++;}catch(e){f++;}}
+        showToast('保存完成: 成功 '+s+', 失败 '+f, s>0?'success':'error');loadData();
     }
 
-    function showImportResult(resp) {
-        importResult.classList.add('show');
-        if (resp.code !== 200 || !resp.data) {
-            importResult.innerHTML = '<span style="color:var(--danger);">导入失败: ' + (resp.message || '未知错误') + '</span>';
-            return;
-        }
-        const d = resp.data;
-        const typeLabel = d.importType === 'student' ? '学生名单' : '考勤记录';
-        document.getElementById('totalRows').textContent = d.totalRows;
-        document.getElementById('successCount').textContent = d.successCount + ' (' + typeLabel + ')';
-        document.getElementById('failureCount').textContent = d.failureCount;
-
-        const errorToggle = document.getElementById('errorToggle');
-        const errorBody = document.getElementById('errorTableBody');
-        if (d.errors && d.errors.length > 0) {
-            errorToggle.style.display = 'block';
-            errorBody.innerHTML = '';
-            d.errors.forEach(err => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${err.row}</td><td>${err.field || '-'}</td><td>${err.message}</td>`;
-                errorBody.appendChild(tr);
-            });
-        } else {
-            errorToggle.style.display = 'none';
-        }
-
-        // Reload table if any succeeded
-        if (d.successCount > 0) loadData();
+    // ===== QR Code =====
+    function showQRCode(){
+        const cid=document.getElementById('rollCallCourse').value,date=document.getElementById('rollCallDate').value;
+        if(!cid||!date){showToast('请先选择课程和日期','error');return;}const course=allCourses.find(c=>c.id==cid);if(!course){showToast('课程未找到','error');return;}
+        const label=getCourseLabel(course);
+        document.getElementById('qrCourseLabel').textContent=label;document.getElementById('qrDateLabel').textContent='📅 '+date;
+        const url=window.location.origin+'/mobile-checkin?courseId='+cid+'&date='+date+'&courseName='+encodeURIComponent(label);
+        const qc=document.getElementById('qrContainer');qc.innerHTML='';
+        new QRCode(qc,{text:url,width:220,height:220,colorDark:'#003B71',colorLight:'#ffffff'});
+        document.getElementById('qrOverlay').classList.add('show');
     }
+    function closeQR(){document.getElementById('qrOverlay').classList.remove('show');}
+    document.getElementById('qrOverlay').addEventListener('click',function(e){if(e.target===this)closeQR();});
 
-    function toggleErrors() {
-        const wrap = document.getElementById('errorTableWrap');
-        wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+    // ===== TAB 3: Import/Export =====
+    const uz=document.getElementById('uploadZone'), fi=document.getElementById('fileInput');
+    const pw=document.getElementById('progressWrap'), pb=document.getElementById('progressBar'), pt=document.getElementById('progressText');
+    const ir=document.getElementById('importResult');
+
+    uz.addEventListener('click',()=>fi.click());
+    uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('dragover');});
+    uz.addEventListener('dragleave',()=>uz.classList.remove('dragover'));
+    uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('dragover');if(e.dataTransfer.files.length>0){fi.files=e.dataTransfer.files;startUpload(e.dataTransfer.files[0]);}});
+    fi.addEventListener('change',()=>{if(fi.files.length>0)startUpload(fi.files[0]);});
+
+    function resetUploadUI(){pb.style.width='0%';pt.textContent='上传中 0%';pw.classList.remove('show');ir.classList.remove('show');fi.value='';}
+    function startUpload(file){
+        const ext=file.name.split('.').pop().toLowerCase();if(!['xlsx','xls'].includes(ext)){showToast('不支持 .'+ext,'error');return;}if(file.size>10*1024*1024){showToast('文件超过10MB','error');return;}
+        resetUploadUI();pw.classList.add('show');
+        const fd=new FormData();fd.append('file',file);const ucid=document.getElementById('uploadCourseFilter').value;if(ucid)fd.append('courseId',ucid);
+        const xhr=new XMLHttpRequest();xhr.open('POST','/file/upload');xhr.setRequestHeader('X-XSRF-TOKEN',getCsrfToken());
+        xhr.upload.addEventListener('progress',e=>{if(e.lengthComputable){const pct=Math.round(e.loaded/e.total*100);pb.style.width=pct+'%';pt.textContent='上传中 '+pct+'%';}});
+        xhr.addEventListener('load',()=>{pt.textContent='处理中...';setTimeout(()=>{pw.classList.remove('show');try{showImportResult(JSON.parse(xhr.responseText));}catch(e){showToast('解析响应失败','error');}},400);});
+        xhr.addEventListener('error',()=>{pw.classList.remove('show');showToast('上传失败','error');});
+        xhr.send(fd);
     }
-
-    function resetUploadUI() {
-        progressBar.style.width = '0%';
-        progressText.textContent = '上传中 0%';
-        progressWrap.classList.remove('show');
-        importResult.classList.remove('show');
-        fileInput.value = '';
+    function showImportResult(resp){
+        ir.classList.add('show');
+        if(resp.code!==200||!resp.data){ir.innerHTML='<span style="color:var(--danger);">导入失败: '+(resp.message||'未知错误')+'</span>';return;}
+        const d=resp.data;
+        document.getElementById('totalRows').textContent=d.totalRows;
+        document.getElementById('successCount').textContent=d.successCount+' ('+(d.importType==='student'?'学生名单':'考勤记录')+')';
+        document.getElementById('failureCount').textContent=d.failureCount;
+        const et=document.getElementById('errorToggle'),eb=document.getElementById('errorTableBody');
+        if(d.errors&&d.errors.length>0){et.style.display='block';eb.innerHTML='';d.errors.forEach(err=>{const tr=document.createElement('tr');tr.innerHTML='<td>'+err.row+'</td><td>'+(err.field||'-')+'</td><td>'+err.message+'</td>';eb.appendChild(tr);});}else et.style.display='none';
+        if(d.successCount>0){loadData();if(d.importType==='student'){const ucid=document.getElementById('uploadCourseFilter').value;if(ucid){document.getElementById('rollCallCourse').value=ucid;loadRollCallStudents();}}showToast('导入成功: '+d.successCount+' 条','success');}
     }
+    function toggleErrors(){const w=document.getElementById('errorTableWrap');w.style.display=w.style.display==='none'?'block':'none';document.getElementById('errorToggle').textContent=w.style.display==='none'?'查看失败详情 ▾':'收起失败详情 ▴';}
 
+    // ===== Start =====
     loadData();
 </script>
 </body>

@@ -22,7 +22,7 @@ public class Course {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(length = 50, unique = true)
+    @Column(length = 50)
     private String code;
 
     @Column(name = "teacher_id")

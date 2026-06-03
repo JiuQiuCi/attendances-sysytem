@@ -68,6 +68,11 @@ public class PageController {
         return "leave-list";
     }
 
+    @GetMapping("/mobile-checkin")
+    public String mobileCheckin() {
+        return "mobile-checkin";
+    }
+
     @GetMapping("/")
     public String root() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
