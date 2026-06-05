@@ -8,10 +8,14 @@
 </head>
 <body>
 <script src="/js/auth-check.js"></script>
+
 <div class="form-container">
-    <div class="form-header">
-        <img class="emblem-logo" src="/images/logo.png" alt="西南财经大学">
-        <span th:text="${student != null ? '编辑学生' : '新增学生'}">学生信息</span>
+    <div class="dash-header" style="margin-bottom:20px;">
+        <div class="dash-brand">
+            <img class="emblem-logo" src="/images/logo.png" alt="西南财经大学" style="width:44px;height:44px;">
+            <span class="dash-school" th:text="${student != null ? '编辑学生' : '新增学生'}">新增学生</span>
+        </div>
+        <a href="/index" style="color:var(--text-secondary);font-size:0.85rem;font-weight:600;text-decoration:none;padding:6px 14px;border-radius:var(--radius-full);transition:all var(--transition);">返回首页 →</a>
     </div>
 
     <form id="studentForm">
@@ -41,6 +45,16 @@
                 <option value="男" th:selected="${student?.gender == '男'}">男</option>
                 <option value="女" th:selected="${student?.gender == '女'}">女</option>
             </select>
+        </div>
+
+        <div class="form-group">
+            <label>出生日期</label>
+            <input type="date" id="birthDate" name="birthDate" class="form-control" th:value="${student?.birthDate}">
+        </div>
+
+        <div class="form-group">
+            <label>联系电话</label>
+            <input type="text" id="phone" name="phone" class="form-control" th:value="${student?.phone}" placeholder="请输入手机号码">
         </div>
 
         <div class="button-group">
@@ -73,7 +87,10 @@
         if (!name) showErr('nameError', '姓名不能为空');
         if (hasError) return;
 
-        const student = { studentId, name, className, gender };
+        const birthDate = document.getElementById('birthDate').value;
+        const phone = document.getElementById('phone').value.trim();
+
+        const student = { studentId, name, className, gender, birthDate: birthDate || null, phone: phone || null };
         if (id) student.id = parseInt(id);
 
         const url = id ? '/student/update' : '/student/add';

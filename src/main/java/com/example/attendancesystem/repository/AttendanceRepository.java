@@ -26,6 +26,9 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Integer>
     // 新增：根据学生、课程、日期查找唯一考勤记录
     Optional<Attendance> findByStudentIdAndCourseIdAndAttendanceDate(Integer studentId, Integer courseId, LocalDate date);
 
+    // 统计某学生的考勤记录数（用于删除前检查）
+    long countByStudentId(Integer studentId);
+
     // ===== 数据隔离查询 =====
 
     // 查询教师所有课程下的考勤记录（分页）

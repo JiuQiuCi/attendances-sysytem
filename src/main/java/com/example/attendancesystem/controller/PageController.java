@@ -68,6 +68,16 @@ public class PageController {
         return "leave-list";
     }
 
+    @GetMapping("/student/info-page")
+    public String studentInfoPage() {
+        return "student-info";
+    }
+
+    @GetMapping("/student/course-selection")
+    public String courseSelectionPage() {
+        return "course-selection";
+    }
+
     @GetMapping("/mobile-checkin")
     public String mobileCheckin() {
         return "mobile-checkin";

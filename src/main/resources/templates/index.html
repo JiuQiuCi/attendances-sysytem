@@ -130,8 +130,8 @@
             <div class="menu-title">学生管理</div>
             <div class="menu-desc">管理学生基本信息、导入名单、批量操作</div>
         </div>
-        <!-- 考勤管理 -->
-        <div class="menu-card" onclick="location.href='/attendance/list-page'">
+        <!-- 考勤管理（仅教师） -->
+        <div class="menu-card" data-role="teacher" onclick="location.href='/attendance/list-page'" style="display:none">
             <span class="menu-icon">📅</span>
             <div class="menu-title">考勤管理</div>
             <div class="menu-desc">记录每日出勤、扫码签到、数据导入导出</div>
@@ -141,6 +141,18 @@
             <span class="menu-icon">📚</span>
             <div class="menu-title">课程管理</div>
             <div class="menu-desc">维护课程信息、分配授课教师、排课管理</div>
+        </div>
+        <!-- 学生：我的信息 -->
+        <div class="menu-card" data-role="student" onclick="location.href='/student/info-page'" style="display:none">
+            <span class="menu-icon">👤</span>
+            <div class="menu-title">我的信息</div>
+            <div class="menu-desc">查看个人信息、课程、考勤记录</div>
+        </div>
+        <!-- 学生：选课管理 -->
+        <div class="menu-card" data-role="student" onclick="location.href='/student/course-selection'" style="display:none">
+            <span class="menu-icon">📋</span>
+            <div class="menu-title">选课管理</div>
+            <div class="menu-desc">浏览可选课程、自主选课与退课</div>
         </div>
         <!-- 请假管理 -->
         <div class="menu-card" onclick="location.href='/leave/list-page'">
@@ -175,6 +187,9 @@
             });
             loadTeacherStats();
         } else {
+            document.querySelectorAll('[data-role="student"]').forEach(function (card) {
+                card.style.display = '';
+            });
             loadStudentInfo();
         }
     });
@@ -201,6 +216,7 @@
     }
 
     function loadStudentInfo() {
+        // 加载课程数
         authFetch('/attendance/courses')
             .then(function(r) { return r.json(); })
             .then(function(result) {
@@ -208,6 +224,23 @@
                     var summary = document.getElementById('statsSummary');
                     summary.innerHTML += '<div class="dash-stat"><div class="ds-num">' + result.data.length
                         + '</div><div class="ds-lbl">参与课程</div></div>';
+                }
+            });
+        // 加载个人资料
+        authFetch('/student/profile')
+            .then(function(r) { return r.json(); })
+            .then(function(result) {
+                if (result.code === 200 && result.data) {
+                    var summary = document.getElementById('statsSummary');
+                    var p = result.data;
+                    if (p.studentId) {
+                        summary.innerHTML += '<div class="dash-stat"><div class="ds-num">' + p.studentId
+                            + '</div><div class="ds-lbl">学号</div></div>';
+                    }
+                    if (p.className) {
+                        summary.innerHTML += '<div class="dash-stat"><div class="ds-num">' + p.className
+                            + '</div><div class="ds-lbl">班级</div></div>';
+                    }
                 }
             });
     }

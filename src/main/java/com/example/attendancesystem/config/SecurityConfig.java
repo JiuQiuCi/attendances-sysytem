@@ -52,14 +52,14 @@ public class SecurityConfig {
                 .antMatchers("/index").authenticated()
                 // Root — public (PageController redirects based on auth state)
                 .antMatchers("/").permitAll()
-                // Teacher-only: student management (pages + API)
-                .antMatchers("/student/**").hasRole("TEACHER")
+                // Student management — pages & APIs gated by @PreAuthorize or data-required-role
+                .antMatchers("/student/**").authenticated()
                 // Teacher-only: user/teacher management
                 .antMatchers("/user/**").hasRole("TEACHER")
                 // Teacher-only: file upload / Excel import
                 .antMatchers("/file/**").hasRole("TEACHER")
-                // Teacher-only: reports (page + API)
-                .antMatchers("/report/**").hasRole("TEACHER")
+                // Reports — page & API gated by role-specific logic
+                .antMatchers("/report/**").authenticated()
                 // Both roles: attendance (pages + API)
                 .antMatchers("/attendance/**").authenticated()
                 // Both roles: course read; write gated by @PreAuthorize

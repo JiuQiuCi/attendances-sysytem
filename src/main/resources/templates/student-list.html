@@ -6,10 +6,55 @@
     <title>学生管理 - 西南财经大学考勤系统</title>
     <link rel="stylesheet" href="/css/style.css">
     <style>
-        .page-wrap { max-width: 1400px; margin: 30px auto; padding: 20px; }
+        .page-wrap { max-width: 1400px; margin: 0 auto; padding: 20px; }
         .checkbox-col { width: 40px; text-align: center; }
         .action-btns { display: flex; gap: 6px; }
         .empty-row td { text-align: center; padding: 40px; color: var(--text-secondary); }
+
+        /* ===== Top bar ===== */
+        .topbar {
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+            background: rgba(255,255,255,0.82); backdrop-filter: blur(14px);
+            border-radius: var(--radius-xl); padding: 10px 24px; margin-bottom: 16px;
+            box-shadow: var(--shadow-md); border: 1px solid rgba(255,255,255,0.5);
+        }
+        .topbar .tb-left { display: flex; align-items: center; gap: 14px; }
+        .topbar .tb-right { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: var(--text-secondary); }
+        .topbar .back-link { color: var(--text-secondary); font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 6px 12px; border-radius: var(--radius-full); transition: all var(--transition); cursor: pointer; }
+        .topbar .back-link:hover { background: var(--bg); color: var(--primary); }
+        .topbar .tb-title { font-weight: 700; font-size: 1.05rem; color: var(--text); display: flex; align-items: center; gap: 8px; }
+        .topbar .tb-title::before { content: ''; display: inline-block; width: 3px; height: 22px; background: var(--primary-gradient); border-radius: 2px; }
+        .topbar .tb-role { font-size: 0.75rem; padding: 3px 10px; border-radius: var(--radius-full); background: var(--primary-light); color: var(--primary); font-weight: 600; }
+
+        /* ===== Main card ===== */
+        .main-card {
+            background: rgba(255,255,255,0.68); backdrop-filter: blur(12px);
+            border-radius: var(--radius-xl); border: 1px solid rgba(255,255,255,0.5);
+            box-shadow: var(--shadow-md); overflow: hidden;
+        }
+        .main-card .card-inner { padding: 20px 24px; }
+
+        /* ===== Stats strip ===== */
+        .stats-strip {
+            display: flex; gap: 20px; flex-wrap: wrap; align-items: center;
+            padding: 12px 16px; margin-bottom: 16px;
+            background: linear-gradient(135deg, #F8FAFD, #EEF2F7);
+            border-radius: var(--radius-lg); border: 1px solid var(--border);
+        }
+        .stats-strip .ss-item { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+        .stats-strip .ss-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .ss-dot.total { background: var(--primary); }
+        .stats-strip .ss-num { font-weight: 700; }
+        .stats-strip .ss-lbl { color: var(--text-secondary); font-size: 0.82rem; }
+        .stats-strip .ss-divider { width: 1px; height: 20px; background: var(--border); }
+
+        /* ===== Toast ===== */
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+        .toast { padding: 12px 20px; border-radius: var(--radius-lg); color: #fff; font-weight: 600; font-size: 0.88rem; box-shadow: var(--shadow-lg); animation: slideInRight 0.35s ease; cursor: pointer; max-width: 400px; }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        .toast.warn { background: #E65100; }
+        @keyframes slideInRight { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
         /* Upload section */
         .upload-section {
@@ -47,16 +92,44 @@
         .error-table th { font-size: 0.75rem; padding: 6px 10px; }
         .error-table td { padding: 6px 10px; word-break: break-all; }
         .collapse-header { cursor: pointer; font-weight: 700; color: var(--danger); font-size: 0.88rem; margin-top: 8px; user-select: none; }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 768px) {
+            .page-wrap { padding: 10px; }
+            .topbar { padding: 10px 14px; }
+            .toolbar { flex-direction: column; }
+            .stats-strip { gap: 12px; font-size: 0.8rem; }
+            .main-card .card-inner { padding: 12px; }
+        }
     </style>
 </head>
 <body>
 <script src="/js/auth-check.js"></script>
 <div class="page-wrap">
-    <div class="card">
-        <div class="page-header">
-            <img class="emblem-logo" src="/images/logo.png" alt="西南财经大学">
-            <span class="page-title">学生信息管理</span>
-            <span style="font-size:0.8rem;color:var(--text-secondary);margin-left:12px;">（仅显示您所授课程的学生）</span>
+
+    <!-- Toast container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="dash-header">
+        <div class="dash-brand">
+            <img class="emblem-logo" src="/images/logo.png" alt="西南财经大学" style="width:44px;height:44px;">
+            <span class="dash-school">学生信息管理</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <span id="clockDisplay" style="font-weight:600;"></span>
+            <a href="/index" style="color:var(--text-secondary);font-size:0.85rem;font-weight:600;text-decoration:none;padding:6px 14px;border-radius:var(--radius-full);transition:all var(--transition);">返回首页 →</a>
+        </div>
+    </div>
+
+    <!-- Main card -->
+    <div class="main-card">
+        <div class="card-inner">
+
+        <!-- Stats strip -->
+        <div class="stats-strip">
+            <div class="ss-item"><div class="ss-dot total"></div><span class="ss-num" id="totalCount">0</span><span class="ss-lbl">学生总数</span></div>
+            <div class="ss-divider"></div>
+            <div class="ss-item"><span class="ss-lbl" id="pageInfo">-</span></div>
         </div>
 
         <div class="toolbar">
@@ -131,11 +204,34 @@
         </div>
 
         <div class="pagination" id="pagination"></div>
-    </div>
-</div>
+        </div><!-- /.card-inner -->
+    </div><!-- /.main-card -->
+</div><!-- /.page-wrap -->
 
 <script>
     let currentPage = 0, pageSize = 10, sortBy = 'id', direction = 'asc', keyword = '', courseId = '';
+
+    // ===== Toast 通知 =====
+    function toast(msg, type) {
+        type = type || 'success';
+        const container = document.getElementById('toastContainer');
+        const el = document.createElement('div');
+        el.className = 'toast ' + type;
+        el.textContent = msg;
+        el.addEventListener('click', () => el.remove());
+        container.appendChild(el);
+        setTimeout(() => { if (el.parentNode) el.remove(); }, 3500);
+    }
+
+    // ===== 时钟 =====
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('clockDisplay').textContent =
+            now.toLocaleDateString('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit' }) +
+            ' ' + now.toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' });
+    }
+    updateClock();
+    setInterval(updateClock, 30000);
 
     // 加载课程下拉框
     authFetch('/attendance/courses')
@@ -177,8 +273,9 @@
             .then(result => {
                 if (result.code === 200) {
                     renderTable(result.data.content);
+                    updateStats(result.data);
                     renderPagination(result.data);
-                } else { alert(result.message); }
+                } else { toast(result.message, 'error'); }
             })
             .catch(err => console.error(err));
     }
@@ -219,6 +316,14 @@
         }
     }
 
+    function updateStats(page) {
+        document.getElementById('totalCount').textContent = page.totalElements;
+        const start = page.number * page.size + 1;
+        const end = Math.min((page.number + 1) * page.size, page.totalElements);
+        document.getElementById('pageInfo').textContent =
+            '第 ' + (page.totalElements === 0 ? 0 : start) + '-' + end + ' 条，共 ' + page.totalElements + ' 条';
+    }
+
     function search() { keyword = document.getElementById('keyword').value; courseId = document.getElementById('courseFilter').value; currentPage = 0; loadData(); }
     function resetSearch() { document.getElementById('keyword').value = ''; document.getElementById('courseFilter').value = ''; keyword = ''; courseId = ''; currentPage = 0; loadData(); }
     function addStudent() { window.location.href = '/student/form'; }
@@ -228,14 +333,14 @@
         if (!confirm('确定要删除该学生吗？')) return;
         const resp = await authFetch(`/student/${id}`, { method: 'DELETE' });
         const result = await resp.json();
-        if (result.code === 200) { alert('删除成功'); loadData(); }
-        else alert(result.message);
+        if (result.code === 200) { toast('删除成功', 'success'); loadData(); }
+        else toast(result.message, 'error');
     }
 
     async function batchDelete() {
         const checkboxes = document.querySelectorAll('.studentCheckbox:checked');
         const ids = Array.from(checkboxes).map(cb => parseInt(cb.value));
-        if (ids.length === 0) { alert('请至少选择一名学生'); return; }
+        if (ids.length === 0) { toast('请至少选择一名学生', 'warn'); return; }
         if (!confirm(`确定要删除 ${ids.length} 名学生吗？`)) return;
         const resp = await authFetch('/student/batch', {
             method: 'DELETE',
@@ -243,8 +348,8 @@
             body: JSON.stringify(ids)
         });
         const result = await resp.json();
-        if (result.code === 200) { alert('批量删除成功'); loadData(); }
-        else alert(result.message);
+        if (result.code === 200) { toast('批量删除成功', 'success'); loadData(); }
+        else toast(result.message, 'error');
     }
 
     document.querySelectorAll('th[data-sort]').forEach(th => {
@@ -261,7 +366,10 @@
     });
 
     function exportStudents() {
-        window.location.href = '/student/export';
+        let url = '/student/export?';
+        if (courseId) url += 'courseId=' + courseId + '&';
+        if (keyword) url += 'keyword=' + encodeURIComponent(keyword) + '&';
+        window.location.href = url;
     }
 
     // ===== File Upload =====
@@ -295,10 +403,10 @@
 
     function startUpload(file) {
         const ext = file.name.split('.').pop().toLowerCase();
-        if (!['xlsx','xls'].includes(ext)) { alert('不支持的文件格式: .' + ext); return; }
-        if (file.size > 10*1024*1024) { alert('文件大小超过 10MB 限制'); return; }
+        if (!['xlsx','xls'].includes(ext)) { toast('不支持的文件格式: .' + ext, 'error'); return; }
+        if (file.size > 10*1024*1024) { toast('文件大小超过 10MB 限制', 'error'); return; }
         const courseId = document.getElementById('uploadCourseFilter').value;
-        if (!courseId) { alert('请先选择目标课程（包含具体星期和时间段）'); return; }
+        if (!courseId) { toast('请先选择目标课程（包含具体星期和时间段）', 'warn'); return; }
         resetUploadUI();
         progressWrap.classList.add('show');
         const formData = new FormData();
@@ -321,10 +429,10 @@
                 try {
                     const resp = JSON.parse(xhr.responseText);
                     showImportResult(resp);
-                } catch(e) { alert('解析响应失败'); }
+                } catch(e) { toast('解析响应失败', 'error'); }
             }, 400);
         });
-        xhr.addEventListener('error', () => { progressWrap.classList.remove('show'); alert('上传失败'); });
+        xhr.addEventListener('error', () => { progressWrap.classList.remove('show'); toast('上传失败', 'error'); });
         xhr.send(formData);
     }
 

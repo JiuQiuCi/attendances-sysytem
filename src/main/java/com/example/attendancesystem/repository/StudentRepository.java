@@ -27,21 +27,21 @@ public interface StudentRepository extends JpaRepository<Student, Integer>, JpaS
 
     // ===== 数据隔离查询 =====
 
-    // 查询教师课程下的所有学生（通过考勤记录关联）
-    @Query("SELECT DISTINCT s FROM Student s JOIN Attendance a ON a.student.id = s.id " +
-           "JOIN Course c ON a.course.id = c.id WHERE c.teacherId = :teacherId")
+    // 查询教师课程下的所有学生（通过考勤记录关联，使用 EXISTS 避免 DISTINCT + ORDER BY 冲突）
+    @Query("SELECT s FROM Student s WHERE EXISTS " +
+           "(SELECT a FROM Attendance a JOIN a.course c WHERE a.student = s AND c.teacherId = :teacherId)")
     Page<Student> findStudentsByTeacherId(@Param("teacherId") Integer teacherId, Pageable pageable);
 
     // 教师在课程范围内搜索学生
-    @Query("SELECT DISTINCT s FROM Student s JOIN Attendance a ON a.student.id = s.id " +
-           "JOIN Course c ON a.course.id = c.id WHERE c.teacherId = :teacherId AND " +
+    @Query("SELECT s FROM Student s WHERE EXISTS " +
+           "(SELECT a FROM Attendance a JOIN a.course c WHERE a.student = s AND c.teacherId = :teacherId) AND " +
            "(s.name LIKE %:keyword% OR s.studentId LIKE %:keyword%)")
     Page<Student> searchStudentsByTeacherId(@Param("teacherId") Integer teacherId,
                                              @Param("keyword") String keyword,
                                              Pageable pageable);
 
     // 教师课程下的所有学生（不分页，用于导出）
-    @Query("SELECT DISTINCT s FROM Student s JOIN Attendance a ON a.student.id = s.id " +
-           "JOIN Course c ON a.course.id = c.id WHERE c.teacherId = :teacherId ORDER BY s.id")
+    @Query("SELECT s FROM Student s WHERE EXISTS " +
+           "(SELECT a FROM Attendance a JOIN a.course c WHERE a.student = s AND c.teacherId = :teacherId) ORDER BY s.id")
     List<Student> findAllStudentsByTeacherId(@Param("teacherId") Integer teacherId);
 }

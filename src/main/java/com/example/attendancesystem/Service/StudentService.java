@@ -12,13 +12,18 @@ public interface StudentService {
     Optional<Student> getStudentById(Integer id);
     Optional<Student> getStudentByStudentId(String studentId);
     Optional<Student> getStudentByUserId(Integer userId);
-    List<Student> getStudentsByClass(String className);
-    Page<Student> getAllStudents(Pageable pageable);
-    Page<Student> searchStudents(String keyword, Pageable pageable);
+    /** @deprecated 无数据隔离，请使用 searchStudentsByTeacher */
+    @Deprecated List<Student> getStudentsByClass(String className);
+    /** @deprecated 无数据隔离，请使用 searchStudentsByTeacher */
+    @Deprecated Page<Student> getAllStudents(Pageable pageable);
+    /** @deprecated 无数据隔离，请使用 searchStudentsByTeacher */
+    @Deprecated Page<Student> searchStudents(String keyword, Pageable pageable);
     void deleteStudent(Integer id);
     void deleteStudents(List<Integer> ids);
-    List<Student> quickSearch(String keyword);
-    List<Student> getAllStudents();
+    /** @deprecated 无数据隔离，请使用 quickSearchByTeacher */
+    @Deprecated List<Student> quickSearch(String keyword);
+    /** @deprecated 无数据隔离，请使用 getAllStudentsByTeacher */
+    @Deprecated List<Student> getAllStudents();
 
     // ===== 数据隔离方法 =====
     Page<Student> searchStudentsByTeacher(Integer teacherId, String keyword, Pageable pageable);
@@ -27,4 +32,13 @@ public interface StudentService {
     List<Student> quickSearchByTeacherAndCourse(Integer teacherId, Integer courseId, String keyword);
     List<Student> getAllStudentsByTeacher(Integer teacherId);
     List<Student> getAllStudentsByTeacherAndCourse(Integer teacherId, Integer courseId);
+    /** 导出筛选（教师隔离 + 课程/关键字过滤） */
+    List<Student> exportStudentsByTeacher(Integer teacherId, Integer courseId, String keyword);
+
+    /** 获取学生的课程ID列表 */
+    List<Integer> getStudentCourseIds(Integer studentId);
+
+    // ===== 学生自助完善信息 =====
+    Student createMyProfile(Integer userId, Student profileData);
+    Student updateMyProfile(Integer userId, Student profileData);
 }

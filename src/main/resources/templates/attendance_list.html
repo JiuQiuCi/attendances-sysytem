@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" data-required-role="teacher">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -233,16 +233,15 @@
 
 <div class="page-wrap">
 
-    <!-- ===== Top bar ===== -->
-    <div class="topbar">
-        <div class="tb-left">
-            <a href="/index" class="back-link">← 返回首页</a>
-            <span class="tb-sep"></span>
-            <img class="emblem-logo" src="/images/logo.png" alt="SWUFE" style="width:32px;height:32px;">
-            <span class="tb-title">考勤记录管理</span>
-            <span class="tb-role" id="scopeNote"></span>
+    <div class="dash-header">
+        <div class="dash-brand">
+            <img class="emblem-logo" src="/images/logo.png" alt="西南财经大学" style="width:44px;height:44px;">
+            <span class="dash-school">考勤记录管理</span>
         </div>
-        <div class="tb-right" id="clockDisplay"></div>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <span id="clockDisplay" style="font-weight:600;"></span>
+            <a href="/index" style="color:var(--text-secondary);font-size:0.85rem;font-weight:600;text-decoration:none;padding:6px 14px;border-radius:var(--radius-full);transition:all var(--transition);">返回首页 →</a>
+        </div>
     </div>
 
     <!-- ===== QR Modal ===== -->
@@ -456,7 +455,7 @@
 
     // ===== Auth ready =====
     window.addEventListener('auth:ready', function(e) {
-        document.getElementById('scopeNote').textContent = e.detail.role==='teacher'?'教师视图':'学生视图';
+        // scope shown via data
     });
 
     // ===== Init courses =====

@@ -49,6 +49,9 @@ public class Course {
 
     private Integer semester;
 
+    @Column(name = "max_students")
+    private Integer maxStudents;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 }
