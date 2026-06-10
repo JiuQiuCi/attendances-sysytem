@@ -39,6 +39,21 @@
         </div>
 
         <div class="form-group">
+            <label>学院</label>
+            <input type="text" id="college" name="college" class="form-control" th:value="${student?.college}" placeholder="例如: 计算机与人工智能学院">
+        </div>
+
+        <div class="form-group">
+            <label>年级</label>
+            <input type="text" id="grade" name="grade" class="form-control" th:value="${student?.grade}" placeholder="例如: 2024">
+        </div>
+
+        <div class="form-group">
+            <label>专业</label>
+            <input type="text" id="major" name="major" class="form-control" th:value="${student?.major}" placeholder="例如: 计算机科学与技术">
+        </div>
+
+        <div class="form-group">
             <label>性别</label>
             <select id="gender" name="gender" class="form-control">
                 <option value="">请选择</option>
@@ -74,6 +89,9 @@
         const studentId = document.getElementById('studentId').value.trim();
         const name = document.getElementById('name').value.trim();
         const className = document.getElementById('className').value.trim();
+        const college = document.getElementById('college').value.trim();
+        const grade = document.getElementById('grade').value.trim();
+        const major = document.getElementById('major').value.trim();
         const gender = document.getElementById('gender').value;
 
         let hasError = false;
@@ -90,7 +108,7 @@
         const birthDate = document.getElementById('birthDate').value;
         const phone = document.getElementById('phone').value.trim();
 
-        const student = { studentId, name, className, gender, birthDate: birthDate || null, phone: phone || null };
+        const student = { studentId, name, className, college: college || null, grade: grade || null, major: major || null, gender, birthDate: birthDate || null, phone: phone || null };
         if (id) student.id = parseInt(id);
 
         const url = id ? '/student/update' : '/student/add';

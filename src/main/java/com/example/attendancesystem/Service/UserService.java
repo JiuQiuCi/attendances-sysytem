@@ -19,5 +19,8 @@ public interface UserService {
     int deleteUser(Integer id);
     User save(User user);
 
+    /** 修改密码：验证旧密码后更新为新密码 */
+    void changePassword(Integer userId, String oldPassword, String newPassword);
+
 
 }

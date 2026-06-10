@@ -292,13 +292,26 @@ public class StudentController {
             profile.put("role", currentUser.getRole());
 
             if (SecurityUtil.isStudent()) {
-                // 获取学生记录
+                // 获取学生记录（优先按 userId 查）
                 java.util.Optional<Student> studentOpt = studentService.getStudentByUserId(currentUser.getId());
+                // Fallback: 如果 userId 未关联，尝试按学号匹配用户名（兼容导入数据未自动关联的场景）
+                if (studentOpt.isEmpty()) {
+                    studentOpt = studentService.getStudentByStudentId(currentUser.getUsername());
+                    if (studentOpt.isPresent()) {
+                        // 自动补全关联
+                        Student s = studentOpt.get();
+                        s.setUserId(currentUser.getId());
+                        studentService.updateStudent(s);
+                    }
+                }
                 if (studentOpt.isPresent()) {
                     Student s = studentOpt.get();
                     profile.put("id", s.getId());
                     profile.put("studentId", s.getStudentId());
                     profile.put("className", s.getClassName());
+                    profile.put("college", s.getCollege());
+                    profile.put("major", s.getMajor());
+                    profile.put("grade", s.getGrade());
                     profile.put("gender", s.getGender());
                     profile.put("birthDate", s.getBirthDate() != null ? s.getBirthDate().toString() : null);
                     profile.put("phone", s.getPhone());

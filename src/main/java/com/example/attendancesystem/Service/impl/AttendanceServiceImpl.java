@@ -7,6 +7,7 @@ import com.example.attendancesystem.repository.AttendanceRepository;
 import com.example.attendancesystem.repository.CourseRepository;
 import com.example.attendancesystem.repository.StudentRepository;
 import com.example.attendancesystem.Service.AttendanceService;
+import com.example.attendancesystem.Service.CheckoutSessionManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -36,6 +37,9 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Autowired
     private CourseRepository courseRepository;
+
+    @Autowired
+    private CheckoutSessionManager checkoutSessionManager;
 
     // 签到
     @Override
@@ -100,13 +104,19 @@ public class AttendanceServiceImpl implements AttendanceService {
         return attendanceRepository.save(attendance);
     }
 
-    // 签退
+    // 签退（需教师先发布签退任务）
     @Override
     public Attendance checkOut(Integer studentId, Integer courseId, LocalDate date) {
+        // 检查教师是否已开启签退
+        if (!checkoutSessionManager.isEnabled(courseId, date)) {
+            throw new IllegalArgumentException("教师尚未发布签退任务，暂无法签退");
+        }
+
         Attendance attendance = attendanceRepository.findByStudentIdAndCourseIdAndAttendanceDate(studentId, courseId, date)
                 .orElseThrow(() -> new IllegalArgumentException("未找到今日签到记录，请先签到"));
 
-        if (!"late".equals(attendance.getStatus())) {
+        // 仅迟到状态改为到课，其他状态保持不变（防止缺勤→到课的漏洞）
+        if ("late".equals(attendance.getStatus())) {
             attendance.setStatus("present");
         }
         return attendanceRepository.save(attendance);
@@ -150,6 +160,11 @@ public class AttendanceServiceImpl implements AttendanceService {
     @Override
     public void deleteAttendances(List<Integer> ids) {
         attendanceRepository.deleteAllById(ids);
+    }
+
+    @Override
+    public int deleteAttendanceByDate(Integer teacherId, LocalDate date) {
+        return attendanceRepository.deleteByTeacherIdAndDate(teacherId, date);
     }
 
     @Override

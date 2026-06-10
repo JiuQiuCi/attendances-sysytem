@@ -5,6 +5,7 @@ import com.example.attendancesystem.dto.LoginRequest;
 import com.example.attendancesystem.dto.RegisterRequest;
 import com.example.attendancesystem.entity.User;
 import com.example.attendancesystem.Service.UserService;
+import com.example.attendancesystem.util.SecurityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -96,5 +97,32 @@ public class AuthController {
         data.put("name", user.getName());
         data.put("role", user.getRole());
         return Result.success(data);
+    }
+
+    @PostMapping("/change-password")
+    public Result<String> changePassword(@RequestBody Map<String, String> body) {
+        try {
+            User currentUser = SecurityUtil.getCurrentUser();
+            if (currentUser == null) {
+                return Result.error(401, "请先登录");
+            }
+            String oldPassword = body.get("oldPassword");
+            String newPassword = body.get("newPassword");
+            if (oldPassword == null || oldPassword.isEmpty()) {
+                return Result.error(400, "请输入原密码");
+            }
+            if (newPassword == null || newPassword.isEmpty()) {
+                return Result.error(400, "请输入新密码");
+            }
+            if (newPassword.length() < 3) {
+                return Result.error(400, "新密码至少3位");
+            }
+            userService.changePassword(currentUser.getId(), oldPassword, newPassword);
+            return Result.success("密码修改成功，下次登录请使用新密码");
+        } catch (IllegalArgumentException e) {
+            return Result.error(400, e.getMessage());
+        } catch (Exception e) {
+            return Result.error(500, "修改失败：" + e.getMessage());
+        }
     }
 }

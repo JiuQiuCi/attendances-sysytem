@@ -161,7 +161,7 @@
                 <div style="font-size:1.5rem;margin-bottom:4px;">📁</div>
                 <div><strong>点击选择文件</strong> 或拖拽 Excel 到此处</div>
                 <div style="color:var(--text-secondary);font-size:0.85rem;margin-top:4px;">
-                    支持学生名单格式：学号、姓名、性别、班级<br>选择课程后导入，学生将自动关联到该课程时间段<br>.xlsx / .xls，不超过 10MB
+                    支持学生名单格式：学号、姓名、性别、学院、年级、专业、班级<br>选择课程后导入，学生将自动关联到该课程时间段<br>.xlsx / .xls，不超过 10MB
                 </div>
                 <input type="file" id="fileInput" accept=".xlsx,.xls">
             </div>
@@ -193,12 +193,15 @@
                     <th data-sort="studentId">学号</th>
                     <th data-sort="name">姓名</th>
                     <th data-sort="gender">性别</th>
+                    <th data-sort="college">学院</th>
+                    <th data-sort="grade">年级</th>
+                    <th data-sort="major">专业</th>
                     <th data-sort="className">班级</th>
                     <th>操作</th>
                 </tr>
                 </thead>
                 <tbody id="tableBody">
-                <tr class="empty-row"><td colspan="6">加载中...</td></tr>
+                <tr class="empty-row"><td colspan="9">加载中...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -283,7 +286,7 @@
     function renderTable(students) {
         const tbody = document.getElementById('tableBody');
         if (!students || students.length === 0) {
-            tbody.innerHTML = '<tr class="empty-row"><td colspan="6">暂无数据</td></tr>';
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="9">暂无数据</td></tr>';
             return;
         }
         tbody.innerHTML = '';
@@ -293,8 +296,11 @@
             row.insertCell(1).innerText = s.studentId;
             row.insertCell(2).innerText = s.name;
             row.insertCell(3).innerText = s.gender || '';
-            row.insertCell(4).innerText = s.className || '';
-            const actions = row.insertCell(5);
+            row.insertCell(4).innerText = s.college || '';
+            row.insertCell(5).innerText = s.grade || '';
+            row.insertCell(6).innerText = s.major || '';
+            row.insertCell(7).innerText = s.className || '';
+            const actions = row.insertCell(8);
             actions.className = 'action-btns';
             actions.innerHTML = `
                 <button class="btn btn-warning btn-sm" onclick="editStudent(${s.id})">编辑</button>

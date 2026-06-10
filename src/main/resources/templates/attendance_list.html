@@ -140,6 +140,13 @@
         .row-act select { font-size: 0.78rem; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--border); background: #fff; }
         .btn-del-row { padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid #FECACA; background: #FFF5F5; color: #C62828; cursor: pointer; font-weight: 600; transition: all var(--transition); }
         .btn-del-row:hover { background: #FEE2E2; }
+        .btn-del-date {
+            padding: 6px 12px; font-size: 0.78rem; border-radius: var(--radius-full);
+            border: 1px solid #FECACA; background: #FFF5F5; color: #C62828;
+            cursor: pointer; font-weight: 700; transition: all var(--transition);
+            white-space: nowrap; flex-shrink: 0; margin-left: 4px;
+        }
+        .btn-del-date:hover { background: #FEE2E2; border-color: #EF9A9A; box-shadow: 0 2px 8px rgba(198,40,40,0.15); }
 
         /* ===== Roll Call tab ===== */
         .rc-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
@@ -192,14 +199,21 @@
         /* ===== QR Modal ===== */
         .qr-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; justify-content: center; align-items: center; }
         .qr-overlay.show { display: flex; animation: fadeIn 0.25s ease; }
-        .qr-dialog { background: #fff; border-radius: var(--radius-xl); padding: 32px 28px; width: 400px; text-align: center; box-shadow: 0 24px 80px rgba(0,0,0,0.35); animation: fadeInScale 0.3s ease; }
+        .qr-dialog { background: #fff; border-radius: var(--radius-xl); padding: 32px 28px; width: 440px; max-width: 95vw; text-align: center; box-shadow: 0 24px 80px rgba(0,0,0,0.35); animation: fadeInScale 0.3s ease; max-height: 95vh; overflow-y: auto; }
         .qr-dialog .qr-tt { font-size: 1.15rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
         .qr-dialog .qr-course { font-weight: 700; color: #005AA5; margin-bottom: 4px; font-size: 0.9rem; }
         .qr-dialog .qr-date { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 18px; }
-        .qr-dialog .qr-wrap { display: flex; justify-content: center; margin: 8px 0; padding: 16px; background: var(--bg); border-radius: var(--radius-lg); }
-        .qr-dialog .qr-hint { font-size: 0.78rem; color: var(--text-muted); margin-top: 12px; line-height: 1.5; }
-        .qr-dialog .btn-close-qr { margin-top: 16px; padding: 8px 28px; border-radius: var(--radius-full); border: 1.5px solid var(--border); background: #fff; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all var(--transition); }
+        .qr-dialog .qr-wrap { display: flex; justify-content: center; margin: 8px 0; padding: 16px; background: var(--bg); border-radius: var(--radius-lg); min-height: 236px; align-items: center; }
+        .qr-dialog .qr-wrap img { display: block; }
+        .qr-dialog .qr-url-box { margin-top: 12px; padding: 10px 12px; background: #F8FAFD; border-radius: var(--radius); border: 1px solid var(--border); word-break: break-all; font-size: 0.75rem; color: var(--primary); font-family: monospace; text-align: left; line-height: 1.4; max-height: 60px; overflow-y: auto; }
+        .qr-dialog .qr-actions { display: flex; gap: 8px; margin-top: 12px; justify-content: center; flex-wrap: wrap; }
+        .qr-dialog .btn-copy-url { padding: 8px 18px; border-radius: var(--radius-full); border: 1.5px solid var(--primary); background: var(--primary-light); color: var(--primary); cursor: pointer; font-weight: 700; font-size: 0.85rem; transition: all var(--transition); }
+        .qr-dialog .btn-copy-url:hover { background: var(--primary); color: #fff; }
+        .qr-dialog .btn-copy-url.copied { background: var(--success); color: #fff; border-color: var(--success); }
+        .qr-dialog .qr-hint { font-size: 0.78rem; color: var(--text-muted); margin-top: 10px; line-height: 1.5; }
+        .qr-dialog .btn-close-qr { margin-top: 6px; padding: 8px 28px; border-radius: var(--radius-full); border: 1.5px solid var(--border); background: #fff; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all var(--transition); }
         .qr-dialog .btn-close-qr:hover { background: var(--bg); border-color: #ccc; }
+        .qr-dialog .qr-error { color: #C62828; font-size: 0.85rem; font-weight: 600; padding: 8px; background: #FFEBEE; border-radius: var(--radius); margin: 8px 0; }
 
         /* ===== Empty state ===== */
         .empty-state { text-align: center; padding: 48px 24px; color: var(--text-muted); }
@@ -230,6 +244,9 @@
 </head>
 <body>
 <script src="/js/auth-check.js"></script>
+<!-- 二维码地址来源：显式配置优先，当前访问地址次之，自动探测IP仅作 localhost 兜底 -->
+<input type="hidden" id="configuredPublicUrl" th:value="${configuredPublicUrl}">
+<input type="hidden" id="autoDetectedUrl" th:value="${autoDetectedUrl}">
 
 <div class="page-wrap">
 
@@ -247,12 +264,16 @@
     <!-- ===== QR Modal ===== -->
     <div class="qr-overlay" id="qrOverlay">
         <div class="qr-dialog">
-            <div class="qr-tt">📱 扫码签到</div>
+            <div class="qr-tt" id="qrTitle">📱 扫码签到</div>
             <div class="qr-course" id="qrCourseLabel"></div>
             <div class="qr-date" id="qrDateLabel"></div>
             <div class="qr-wrap" id="qrContainer"></div>
-            <div class="qr-hint">学生用手机扫描二维码即可完成签到<br>签到链接已包含课程和日期信息</div>
-            <button class="btn-close-qr" onclick="closeQR()">关闭</button>
+            <div class="qr-url-box" id="qrUrlBox" style="display:none;"></div>
+            <div class="qr-actions">
+                <button class="btn-copy-url" id="btnCopyUrl" onclick="copyCheckinUrl()" style="display:none;">📋 复制签到链接</button>
+                <button class="btn-close-qr" onclick="closeQR()">关闭</button>
+            </div>
+            <div class="qr-hint" id="qrUrlHint">学生用手机扫描二维码即可完成签到<br>签到链接已包含课程和日期信息</div>
         </div>
     </div>
 
@@ -311,7 +332,6 @@
                 <button class="btn btn-primary btn-sm" onclick="batchChangeStatus()">应用</button>
                 <input type="date" id="batchDate" placeholder="改日期">
                 <button class="btn btn-sm" style="background:#E8EDF5;color:var(--primary);border:1px solid #D0D5DD;" onclick="batchSetDate()">改日期</button>
-                <button class="btn btn-danger btn-sm" onclick="batchDelete()">🗑 批量删除</button>
             </div>
 
             <!-- Date cards -->
@@ -331,8 +351,10 @@
                 <button class="btn btn-outline btn-sm" onclick="batchSetRollCall('present')">✅ 全部到课</button>
                 <button class="btn btn-outline btn-sm" onclick="batchSetRollCall('absent')">❌ 全部缺勤</button>
                 <div class="rc-actions">
-                    <button class="btn btn-primary btn-sm" onclick="showQRCode()">📱 生成签到码</button>
+                    <button class="btn btn-primary btn-sm" onclick="showQRCode()">📱 签到二维码</button>
+                    <button class="btn btn-warning btn-sm" onclick="enableCheckout()" style="background:#E65100;color:#fff;border:none;">📤 发布签退</button>
                     <button class="btn btn-success btn-sm" onclick="submitAllRollCall()">💾 全部保存</button>
+                    <a href="/diagnostic-page" style="font-size:0.78rem;color:var(--text-muted);text-decoration:none;padding:4px 8px;" title="网络诊断">🔧</a>
                 </div>
             </div>
 
@@ -540,6 +562,7 @@
                         <span class="dc-stat dc-absent" title="缺勤" onclick="event.stopPropagation();filterDateStatus('${g.date}','absent')"><div class="dc-num">${g.absent}</div><div class="dc-lbl">缺勤</div></span>
                     </span>
                     <span class="dc-chevron">▼</span>
+                    <button class="btn-del-date" onclick="event.stopPropagation();deleteByDate('${g.date}')" title="删除该日期全部考勤记录">🗑 删除</button>
                 </div>
                 <div class="date-card-body">
                     <table><thead><tr><th style="width:36px;"><input type="checkbox" onchange="toggleDateSelectAll('${g.date}',this)"></th><th>学号</th><th>姓名</th><th>课程</th><th>状态</th><th style="width:120px;">操作</th></tr></thead>
@@ -552,7 +575,6 @@
                             <td><span class="status-tag ${a.status}"><span class="tag-dot"></span>${{present:'到课',late:'迟到',absent:'缺勤'}[a.status]||a.status}</span></td>
                             <td><div class="row-act">
                                 <select onchange="changeStatus(${a.id},${a.student?a.student.id:0},${a.course?a.course.id:0},'${a.attendanceDate}',this.value)"><option value="">改</option><option value="present">到课</option><option value="late">迟到</option><option value="absent">缺勤</option></select>
-                                <button class="btn-del-row" onclick="deleteRecord(${a.id})">✕</button>
                             </div></td>
                         </tr>`).join('')}</tbody></table>
                 </div>
@@ -604,15 +626,16 @@
             showToast('状态已更新','success');
         } else { showToast(result.message||'操作失败','error'); loadData(); }
     }
-    async function deleteRecord(id) {
-        if (!confirm('确定删除该考勤记录吗？')) return;
-        const resp=await authFetch('/attendance/'+id,{method:'DELETE'}); const result=await resp.json();
-        if (result.code===200) {
-            allAttendanceData=allAttendanceData.filter(a=>a.id!==id);
-            const expanded=getExpandedDates(), scrollY=window.scrollY;
-            renderDateCards(allAttendanceData,expanded); updateStats(allAttendanceData);
-            window.scrollTo(0,scrollY); showToast('已删除','success');
-        } else showToast(result.message||'删除失败','error');
+    async function deleteByDate(date) {
+        if (!confirm('确定删除 ' + date + ' 的全部考勤记录吗？\n\n此操作将删除该日期下您所有课程的考勤数据，不可撤销！')) return;
+        const resp = await authFetch('/attendance/by-date?date=' + date, { method: 'DELETE' });
+        const result = await resp.json();
+        if (result.code === 200) {
+            showToast('已删除 ' + (result.data ? result.data.deletedCount : '') + ' 条记录', 'success');
+            loadData();
+        } else {
+            showToast(result.message || '删除失败', 'error');
+        }
     }
     async function batchChangeStatus() {
         const status=document.getElementById('batchStatus').value;
@@ -685,17 +708,263 @@
     }
 
     // ===== QR Code =====
+    let _currentCheckinUrl = ''; // 存储当前签到链接，用于复制
+
+    /** 确保 URL 是绝对地址（含协议） */
+    function buildAbsoluteUrl(rawOrigin) {
+        var origin = (rawOrigin || '').trim();
+        // 去除尾部斜杠
+        origin = origin.replace(/\/+$/, '');
+        // 如果没有协议，补上 http://
+        if (origin && !/^https?:\/\//i.test(origin)) {
+            origin = 'http://' + origin;
+        }
+        return origin;
+    }
+
+    function isLocalhostUrl(url) {
+        return /(^https?:\/\/)?(localhost|127\.0\.0\.1)(:|\/|$)/i.test(url || '');
+    }
+
+    function getHiddenValue(id) {
+        var el = document.getElementById(id);
+        return el ? el.value.trim() : '';
+    }
+
+    function resolveQrBaseUrl() {
+        var configuredUrl = buildAbsoluteUrl(getHiddenValue('configuredPublicUrl'));
+        var autoDetectedUrl = buildAbsoluteUrl(getHiddenValue('autoDetectedUrl'));
+        var currentOrigin = buildAbsoluteUrl(window.location.origin);
+
+        if (configuredUrl) {
+            return {
+                origin: configuredUrl,
+                source: 'configured',
+                configuredUrl: configuredUrl,
+                autoDetectedUrl: autoDetectedUrl,
+                currentOrigin: currentOrigin
+            };
+        }
+
+        if (!isLocalhostUrl(currentOrigin)) {
+            return {
+                origin: currentOrigin,
+                source: 'current',
+                configuredUrl: '',
+                autoDetectedUrl: autoDetectedUrl,
+                currentOrigin: currentOrigin
+            };
+        }
+
+        if (autoDetectedUrl) {
+            return {
+                origin: autoDetectedUrl,
+                source: 'auto',
+                configuredUrl: '',
+                autoDetectedUrl: autoDetectedUrl,
+                currentOrigin: currentOrigin
+            };
+        }
+
+        return {
+            origin: currentOrigin,
+            source: 'localhost',
+            configuredUrl: '',
+            autoDetectedUrl: '',
+            currentOrigin: currentOrigin
+        };
+    }
+
+    function updateQrHint(baseInfo, actionText) {
+        var hintEl = document.getElementById('qrUrlHint');
+        var origin = baseInfo.origin || '';
+
+        if (isLocalhostUrl(origin)) {
+            hintEl.innerHTML = '⚠️ <b>当前二维码地址是 localhost，手机无法访问。</b><br>请用本机局域网IP或公网域名打开教师端，或在 application.properties 中配置 app.public-url。<br><a href="/diagnostic-page" style="color:#005AA5;font-weight:700;">打开网络诊断页面 →</a>';
+            hintEl.style.color = '#E65100';
+            return;
+        }
+
+        if (baseInfo.source === 'auto') {
+            hintEl.innerHTML = actionText + '<br><span style="color:#E65100;">当前教师端是通过 localhost 打开的，二维码已尝试使用自动探测IP：' + origin + '</span><br><span style="font-size:0.7rem;color:var(--text-muted);">手机必须和教师电脑在同一网络，并且 Windows 防火墙允许 8081 端口。</span> <a href="/diagnostic-page" style="font-size:0.7rem;color:#005AA5;">网络诊断 →</a>';
+            hintEl.style.color = '';
+            return;
+        }
+
+        if (baseInfo.source === 'configured') {
+            hintEl.innerHTML = actionText + '<br>二维码使用已配置地址：<span style="font-family:monospace;">' + origin + '</span><br><span style="font-size:0.7rem;color:var(--text-muted);">如手机仍无法打开，请确认该地址可从学生手机网络访问。</span> <a href="/diagnostic-page" style="font-size:0.7rem;color:#005AA5;">网络诊断 →</a>';
+            hintEl.style.color = '';
+            return;
+        }
+
+        hintEl.innerHTML = actionText + '<br>二维码使用教师端当前访问地址：<span style="font-family:monospace;">' + origin + '</span><br><span style="font-size:0.7rem;color:var(--text-muted);">如手机无法打开，请确认学生手机与该地址网络可达。</span> <a href="/diagnostic-page" style="font-size:0.7rem;color:#005AA5;">网络诊断 →</a>';
+        hintEl.style.color = '';
+    }
+
     function showQRCode(){
-        const cid=document.getElementById('rollCallCourse').value,date=document.getElementById('rollCallDate').value;
-        if(!cid||!date){showToast('请先选择课程和日期','error');return;}const course=allCourses.find(c=>c.id==cid);if(!course){showToast('课程未找到','error');return;}
-        const label=getCourseLabel(course);
-        document.getElementById('qrCourseLabel').textContent=label;document.getElementById('qrDateLabel').textContent='📅 '+date;
-        const url=window.location.origin+'/mobile-checkin?courseId='+cid+'&date='+date+'&courseName='+encodeURIComponent(label);
-        const qc=document.getElementById('qrContainer');qc.innerHTML='';
-        new QRCode(qc,{text:url,width:220,height:220,colorDark:'#003B71',colorLight:'#ffffff'});
+        var cid = document.getElementById('rollCallCourse').value;
+        var date = document.getElementById('rollCallDate').value;
+        if(!cid||!date){ showToast('请先选择课程和日期','error'); return; }
+        var course = allCourses.find(function(c) { return c.id == cid; });
+        if(!course){ showToast('课程未找到','error'); return; }
+        var label = getCourseLabel(course);
+
+        document.getElementById('qrTitle').textContent = '📱 扫码签到';
+        document.getElementById('qrCourseLabel').textContent = label;
+        document.getElementById('qrDateLabel').textContent = '📅 ' + date;
+
+        // 构建正确的绝对 URL
+        var baseInfo = resolveQrBaseUrl();
+        var origin = baseInfo.origin;
+        var url = origin + '/mobile-checkin?courseId=' + encodeURIComponent(cid) + '&date=' + encodeURIComponent(date) + '&courseName=' + encodeURIComponent(label);
+        _currentCheckinUrl = url;
+
+        // 显示 URL 文本框
+        var urlBox = document.getElementById('qrUrlBox');
+        urlBox.style.display = 'block';
+        urlBox.textContent = url;
+
+        // 显示复制按钮
+        var copyBtn = document.getElementById('btnCopyUrl');
+        copyBtn.style.display = 'inline-block';
+        copyBtn.textContent = '📋 复制签到链接';
+        copyBtn.classList.remove('copied');
+
+        // 生成二维码（优先使用 qrcodejs，失败则显示提示）
+        var qc = document.getElementById('qrContainer');
+        qc.innerHTML = '';
+        try {
+            if (typeof QRCode !== 'undefined') {
+                new QRCode(qc, {text: url, width: 220, height: 220, colorDark:'#003B71', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.L});
+            } else {
+                throw new Error('QRCode library not loaded');
+            }
+        } catch(e) {
+            // QR 库加载失败，显示大图标 + URL 文本提示
+            qc.innerHTML = '<div style="text-align:center;color:#E65100;"><div style="font-size:3rem;">📱</div><div style="font-weight:700;margin:8px 0;">二维码库未加载</div><div style="font-size:0.8rem;">请使用下方"复制签到链接"按钮<br>将链接发送给学生</div></div>';
+            console.error('QRCode generation failed:', e);
+        }
+
+        updateQrHint(baseInfo, '📱 学生用手机扫描二维码即可完成签到<br>🔗 也可复制链接通过微信/QQ发送给学生');
         document.getElementById('qrOverlay').classList.add('show');
     }
-    function closeQR(){document.getElementById('qrOverlay').classList.remove('show');}
+
+    /** 复制签到链接到剪贴板 */
+    function copyCheckinUrl() {
+        var url = _currentCheckinUrl;
+        if (!url) {
+            showToast('没有可复制的链接', 'error');
+            return;
+        }
+        // 使用 Clipboard API（现代浏览器），失败则回退到 execCommand
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(function() {
+                var btn = document.getElementById('btnCopyUrl');
+                btn.textContent = '✅ 已复制！';
+                btn.classList.add('copied');
+                showToast('签到链接已复制到剪贴板', 'success');
+                setTimeout(function() {
+                    btn.textContent = '📋 复制签到链接';
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(function() {
+                fallbackCopy(url);
+            });
+        } else {
+            fallbackCopy(url);
+        }
+    }
+
+    function fallbackCopy(text) {
+        var textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        try {
+            var success = document.execCommand('copy');
+            if (success) {
+                var btn = document.getElementById('btnCopyUrl');
+                btn.textContent = '✅ 已复制！';
+                btn.classList.add('copied');
+                showToast('签到链接已复制到剪贴板', 'success');
+                setTimeout(function() {
+                    btn.textContent = '📋 复制签到链接';
+                    btn.classList.remove('copied');
+                }, 2000);
+            } else {
+                showToast('复制失败，请手动复制上方链接', 'error');
+            }
+        } catch(e) {
+            showToast('复制失败，请手动复制上方链接', 'error');
+        }
+        document.body.removeChild(textarea);
+    }
+
+    function closeQR(){
+        document.getElementById('qrOverlay').classList.remove('show');
+        _currentCheckinUrl = '';
+    }
+
+    async function enableCheckout(){
+        var cid = document.getElementById('rollCallCourse').value;
+        var date = document.getElementById('rollCallDate').value;
+        if(!cid||!date){ showToast('请先选择课程和日期','error'); return; }
+        try{
+            var resp = await authFetch('/attendance/enable-checkout?courseId=' + cid + '&date=' + date, {method:'POST'});
+            var result = await resp.json();
+            if(result.code === 200){
+                showToast('签退任务已发布，学生可签退（30分钟内有效）','success');
+                showCheckoutQR();
+            } else { showToast(result.message||'发布失败','error'); }
+        } catch(e) { showToast('网络错误','error'); }
+    }
+
+    function showCheckoutQR(){
+        var cid = document.getElementById('rollCallCourse').value;
+        var date = document.getElementById('rollCallDate').value;
+        if(!cid||!date){ showToast('请先选择课程和日期','error'); return; }
+        var course = allCourses.find(function(c) { return c.id == cid; });
+        if(!course){ showToast('课程未找到','error'); return; }
+        var label = getCourseLabel(course);
+
+        document.getElementById('qrTitle').textContent = '📤 签退二维码';
+        document.getElementById('qrCourseLabel').textContent = '📤 ' + label + ' — 签退';
+        document.getElementById('qrDateLabel').textContent = '📅 ' + date;
+
+        var baseInfo = resolveQrBaseUrl();
+        var origin = baseInfo.origin;
+        var url = origin + '/student-attendance';
+        _currentCheckinUrl = url;
+
+        var urlBox = document.getElementById('qrUrlBox');
+        urlBox.style.display = 'block';
+        urlBox.textContent = url;
+
+        var copyBtn = document.getElementById('btnCopyUrl');
+        copyBtn.style.display = 'inline-block';
+        copyBtn.textContent = '📋 复制签退链接';
+        copyBtn.classList.remove('copied');
+
+        var qc = document.getElementById('qrContainer');
+        qc.innerHTML = '';
+        try {
+            if (typeof QRCode !== 'undefined') {
+                new QRCode(qc, {text: url, width: 220, height: 220, colorDark:'#E65100', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.L});
+            } else {
+                throw new Error('QRCode library not loaded');
+            }
+        } catch(e) {
+            qc.innerHTML = '<div style="text-align:center;color:#E65100;"><div style="font-size:3rem;">📱</div><div style="font-weight:700;margin:8px 0;">二维码库未加载</div><div style="font-size:0.8rem;">请使用下方"复制签退链接"按钮</div></div>';
+            console.error('QRCode generation failed:', e);
+        }
+
+        updateQrHint(baseInfo, '学生扫码进入考勤页面即可签退<br>签退窗口：30分钟内有效');
+        document.getElementById('qrOverlay').classList.add('show');
+    }
     document.getElementById('qrOverlay').addEventListener('click',function(e){if(e.target===this)closeQR();});
 
     // ===== TAB 3: Import/Export =====

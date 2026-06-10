@@ -1,17 +1,21 @@
 package com.example.attendancesystem.Service.impl;
 
 import com.example.attendancesystem.entity.Student;
+import com.example.attendancesystem.entity.User;
 import com.example.attendancesystem.repository.AttendanceRepository;
 import com.example.attendancesystem.repository.CourseStudentRepository;
 import com.example.attendancesystem.repository.StudentRepository;
+import com.example.attendancesystem.repository.UserRepository;
 import com.example.attendancesystem.Service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +32,12 @@ public class StudentServiceImpl implements StudentService {
     @Autowired
     private AttendanceRepository attendanceRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @Override
     public Student addStudent(Student student) {
         if (student.getStudentId() == null || student.getStudentId().isEmpty()) {
@@ -36,7 +46,9 @@ public class StudentServiceImpl implements StudentService {
         if (studentRepository.findByStudentId(student.getStudentId()).isPresent()) {
             throw new IllegalArgumentException("学号 " + student.getStudentId() + " 已存在");
         }
-        return studentRepository.save(student);
+        Student saved = studentRepository.save(student);
+        ensureUserAccount(saved);
+        return saved;
     }
 
     @Override
@@ -51,6 +63,9 @@ public class StudentServiceImpl implements StudentService {
         existing.setStudentId(student.getStudentId());
         existing.setName(student.getName());
         existing.setClassName(student.getClassName());
+        existing.setCollege(student.getCollege());
+        existing.setMajor(student.getMajor());
+        existing.setGrade(student.getGrade());
         existing.setGender(student.getGender());
         existing.setBirthDate(student.getBirthDate());
         existing.setPhone(student.getPhone());
@@ -244,10 +259,47 @@ public class StudentServiceImpl implements StudentService {
         student.setStudentId(profileData.getStudentId().trim());
         student.setName(profileData.getName().trim());
         student.setClassName(profileData.getClassName());
+        student.setCollege(profileData.getCollege());
+        student.setMajor(profileData.getMajor());
+        student.setGrade(profileData.getGrade());
         student.setGender(profileData.getGender());
         student.setBirthDate(profileData.getBirthDate());
         student.setPhone(profileData.getPhone());
-        return studentRepository.save(student);
+        Student saved = studentRepository.save(student);
+        ensureUserAccount(saved);
+        return saved;
+    }
+
+    /**
+     * 确保学生有对应的 User 登录账号（用户名=学号，初始密码=学号）
+     */
+    @Override
+    public void ensureUserAccount(Student student) {
+        String username = student.getStudentId();
+        if (username == null || username.isEmpty()) return;
+
+        java.util.Optional<User> existingUser = userRepository.findByUsername(username);
+        if (existingUser.isPresent()) {
+            // User 已存在 → 确保 Student 与 User 关联
+            if (student.getUserId() == null) {
+                student.setUserId(existingUser.get().getId());
+                studentRepository.save(student);
+            }
+            return;
+        }
+        // 创建新的 User 账号（初始密码 = 学号）
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(username));
+        user.setName(student.getName());
+        user.setRole("student");
+        user.setCreatedAt(LocalDateTime.now());
+        userRepository.save(user);
+        // 关联 userId 到 Student
+        if (student.getUserId() == null) {
+            student.setUserId(user.getId());
+            studentRepository.save(student);
+        }
     }
 
     @Override
@@ -267,6 +319,15 @@ public class StudentServiceImpl implements StudentService {
         }
         if (profileData.getClassName() != null) {
             existing.setClassName(profileData.getClassName().trim());
+        }
+        if (profileData.getCollege() != null) {
+            existing.setCollege(profileData.getCollege().trim());
+        }
+        if (profileData.getMajor() != null) {
+            existing.setMajor(profileData.getMajor().trim());
+        }
+        if (profileData.getGrade() != null) {
+            existing.setGrade(profileData.getGrade().trim());
         }
         if (profileData.getGender() != null) {
             existing.setGender(profileData.getGender());

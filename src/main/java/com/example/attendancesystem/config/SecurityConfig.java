@@ -34,7 +34,7 @@ public class SecurityConfig {
             // ── CSRF: cookie-based so JS can read and send via header ──
             .csrf()
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                .ignoringAntMatchers("/auth/login", "/auth/register")
+                .ignoringAntMatchers("/auth/login", "/auth/register", "/attendance/checkin")
                 .and()
 
             // ── Route authorization (order matters — more specific first) ──
@@ -60,6 +60,15 @@ public class SecurityConfig {
                 .antMatchers("/file/**").hasRole("TEACHER")
                 // Reports — page & API gated by role-specific logic
                 .antMatchers("/report/**").authenticated()
+                // Mobile checkin — permitAll so auth-check.js can handle login flow to /mobile-login
+                .antMatchers("/mobile-checkin").permitAll()
+                .antMatchers("/mobile-login").permitAll()
+                // Diagnostic — ping is public for phone connectivity testing
+                .antMatchers("/diagnostic/ping").permitAll()
+                .antMatchers("/diagnostic/**").authenticated()
+                .antMatchers("/diagnostic-page").authenticated()
+                .antMatchers("/attendance/verify-student").authenticated()
+                .antMatchers("/attendance/checkin").authenticated()
                 // Both roles: attendance (pages + API)
                 .antMatchers("/attendance/**").authenticated()
                 // Both roles: course read; write gated by @PreAuthorize

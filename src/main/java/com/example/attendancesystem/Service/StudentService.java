@@ -41,4 +41,7 @@ public interface StudentService {
     // ===== 学生自助完善信息 =====
     Student createMyProfile(Integer userId, Student profileData);
     Student updateMyProfile(Integer userId, Student profileData);
+
+    /** 确保学生有对应的 User 登录账号（用户名=学号，初始密码=学号），已存在则跳过 */
+    void ensureUserAccount(Student student);
 }

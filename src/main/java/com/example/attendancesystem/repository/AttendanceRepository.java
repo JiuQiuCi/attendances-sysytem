@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -47,6 +48,12 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Integer>
                                                   @Param("startDate") LocalDate startDate,
                                                   @Param("endDate") LocalDate endDate,
                                                   Pageable pageable);
+
+    // 按教师+日期删除考勤记录（数据隔离）
+    @Modifying
+    @Query("DELETE FROM Attendance a WHERE a.attendanceDate = :date AND a.course.id IN " +
+           "(SELECT c.id FROM Course c WHERE c.teacherId = :teacherId)")
+    int deleteByTeacherIdAndDate(@Param("teacherId") Integer teacherId, @Param("date") LocalDate date);
 
     // 教师在指定课程中按日期过滤考勤
     @Query("SELECT a FROM Attendance a JOIN a.course c WHERE c.teacherId = :teacherId " +

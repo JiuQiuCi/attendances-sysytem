@@ -106,4 +106,18 @@ public class UserServiceImpl implements UserService {
             user.setCreatedAt(LocalDateTime.now());
             return userRepository.save(user);
         }
+
+        @Override
+        public void changePassword(Integer userId, String oldPassword, String newPassword) {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+            if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+                throw new IllegalArgumentException("原密码错误");
+            }
+            if (newPassword == null || newPassword.length() < 1) {
+                throw new IllegalArgumentException("新密码不能为空");
+            }
+            user.setPassword(passwordEncoder.encode(newPassword));
+            userRepository.save(user);
+        }
 }

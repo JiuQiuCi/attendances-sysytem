@@ -1,5 +1,6 @@
 package com.example.attendancesystem.controller;
 
+import com.example.attendancesystem.Service.ServerUrlService;
 import com.example.attendancesystem.Service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -15,6 +16,9 @@ public class PageController {
 
     @Autowired
     private StudentService studentService;
+
+    @Autowired
+    private ServerUrlService serverUrlService;
 
     @GetMapping("/register")
     public String register() {
@@ -45,7 +49,9 @@ public class PageController {
     }
 
     @GetMapping("/attendance/list-page")
-    public String attendanceListPage() {
+    public String attendanceListPage(Model model) {
+        model.addAttribute("configuredPublicUrl", serverUrlService.getConfiguredPublicUrl());
+        model.addAttribute("autoDetectedUrl", serverUrlService.getAutoDetectedUrl());
         return "attendance_list";
     }
 
@@ -78,9 +84,24 @@ public class PageController {
         return "course-selection";
     }
 
+    @GetMapping("/mobile-login")
+    public String mobileLogin() {
+        return "mobile-login";
+    }
+
     @GetMapping("/mobile-checkin")
     public String mobileCheckin() {
         return "mobile-checkin";
+    }
+
+    @GetMapping("/diagnostic-page")
+    public String diagnosticPage() {
+        return "diagnostic";
+    }
+
+    @GetMapping("/student-attendance")
+    public String studentAttendance() {
+        return "student-attendance";
     }
 
     @GetMapping("/")
