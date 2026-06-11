@@ -308,7 +308,7 @@ public class AttendanceController {
             Optional<Student> studentOpt = SecurityUtil.getCurrentStudent(studentRepository);
             if (studentOpt.isPresent()) {
                 pageResult = attendanceService.getAttendancesByStudentPaged(
-                        studentOpt.get().getId(), pageable);
+                        studentOpt.get().getId(), courseId, startDate, endDate, pageable);
             } else {
                 // 学生未关联 Student 记录，返回空
                 pageResult = Page.empty(pageable);

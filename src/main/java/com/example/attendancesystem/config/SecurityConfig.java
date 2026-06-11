@@ -7,6 +7,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
@@ -27,6 +28,11 @@ public class SecurityConfig {
     }
 
     @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return web -> web.ignoring().antMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico");
+    }
+
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                             CustomAuthenticationEntryPoint entryPoint,
                                             CustomAccessDeniedHandler deniedHandler) throws Exception {
@@ -34,7 +40,10 @@ public class SecurityConfig {
             // ── CSRF: cookie-based so JS can read and send via header ──
             .csrf()
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                .ignoringAntMatchers("/auth/login", "/auth/register", "/attendance/checkin")
+                .ignoringAntMatchers(
+                        "/auth/login", "/auth/register", "/attendance/checkin",
+                        "/css/**", "/js/**", "/images/**", "/favicon.ico"
+                )
                 .and()
 
             // ── Route authorization (order matters — more specific first) ──

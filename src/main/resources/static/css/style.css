@@ -42,7 +42,7 @@
     --font: 'Segoe UI', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
 
     /* ===== 背景图片设置（在此处修改参数） ===== */
-    --bg-image: url('/images/campus-1.png');  /* 背景图片路径：campus-1~4 */
+    --bg-image: url('/images/campus-bg.jpg');  /* 背景图片路径：campus-1~4 */
     --bg-blur: 1px;                /* 模糊程度，越大越模糊（建议 2~12px） */
     --bg-scale: 1.15;              /* 图片放大系数，避免模糊边缘出现白边 */
     --bg-brightness: 1.0;          /* 图片亮度，0=全黑 1=原图 >1=增亮 */
@@ -106,7 +106,7 @@ body.auth-page::after {
 
 /* 登录页：使用 campus-3 背景图 */
 body.auth-login-page {
-    --bg-image: url('/images/campus-3.jpeg');
+    --bg-image: url('/images/campus-login.jpg');
 }
 
 /* 注册页：卡片左移 */

@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface StudentService {
-    Student addStudent(Student student);
+    Student addStudent(Student student, Integer courseId);
     Student updateStudent(Student student);
     Optional<Student> getStudentById(Integer id);
     Optional<Student> getStudentByStudentId(String studentId);

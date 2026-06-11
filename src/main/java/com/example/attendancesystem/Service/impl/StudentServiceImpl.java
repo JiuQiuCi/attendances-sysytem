@@ -1,8 +1,11 @@
 package com.example.attendancesystem.Service.impl;
 
+import com.example.attendancesystem.entity.Course;
+import com.example.attendancesystem.entity.CourseStudent;
 import com.example.attendancesystem.entity.Student;
 import com.example.attendancesystem.entity.User;
 import com.example.attendancesystem.repository.AttendanceRepository;
+import com.example.attendancesystem.repository.CourseRepository;
 import com.example.attendancesystem.repository.CourseStudentRepository;
 import com.example.attendancesystem.repository.StudentRepository;
 import com.example.attendancesystem.repository.UserRepository;
@@ -12,9 +15,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -30,16 +35,22 @@ public class StudentServiceImpl implements StudentService {
     private CourseStudentRepository courseStudentRepository;
 
     @Autowired
+    private CourseRepository courseRepository;
+
+    @Autowired
     private AttendanceRepository attendanceRepository;
 
     @Autowired
     private UserRepository userRepository;
 
     @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Override
-    public Student addStudent(Student student) {
+    public Student addStudent(Student student, Integer courseId) {
         if (student.getStudentId() == null || student.getStudentId().isEmpty()) {
             throw new IllegalArgumentException("学号不能为空");
         }
@@ -48,6 +59,34 @@ public class StudentServiceImpl implements StudentService {
         }
         Student saved = studentRepository.save(student);
         ensureUserAccount(saved);
+
+        // 如果指定了课程，创建 CourseStudent 关联
+        if (courseId != null) {
+            Course course = courseRepository.findById(courseId).orElse(null);
+            if (course != null) {
+                // 创建 CourseStudent 选课记录
+                if (courseStudentRepository.findByCourseIdAndStudentId(courseId, saved.getId()).isEmpty()) {
+                    CourseStudent cs = new CourseStudent();
+                    cs.setCourse(course);
+                    cs.setStudent(saved);
+                    courseStudentRepository.save(cs);
+                }
+                // 创建今日考勤记录（与 Excel 导入行为一致）
+                LocalDate today = LocalDate.now();
+                try {
+                    Boolean exists = jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) > 0 FROM attendances WHERE student_id = ? AND course_id = ? AND attendance_date = ?",
+                        Boolean.class, saved.getId(), course.getId(), today);
+                    if (exists == null || !exists) {
+                        jdbcTemplate.update(
+                            "INSERT INTO attendances (student_id, course_id, attendance_date, status, created_at) VALUES (?, ?, ?, 'present', ?)",
+                            saved.getId(), course.getId(), today, LocalDateTime.now());
+                    }
+                } catch (Exception ignored) {
+                    // 考勤记录创建失败不影响学生保存
+                }
+            }
+        }
         return saved;
     }
 
@@ -150,18 +189,19 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public Page<Student> searchStudentsByTeacher(Integer teacherId, String keyword, Pageable pageable) {
+        // UNION 查询：同时覆盖 CourseStudent 和 Attendance 两个数据源
         Page<Student> result;
         if (keyword == null || keyword.trim().isEmpty()) {
-            result = courseStudentRepository.findStudentsByTeacherId(teacherId, pageable);
+            result = studentRepository.findStudentsByTeacherIdUnion(teacherId, pageable);
         } else {
-            result = courseStudentRepository.searchStudentsByTeacherId(teacherId, keyword.trim(), pageable);
+            result = studentRepository.searchStudentsByTeacherIdUnion(teacherId, keyword.trim(), pageable);
         }
-        // 回退：如果 CourseStudent 表为空，使用 Attendance 表查询（兼容旧数据）
+        // 回退：如果 UNION 查询无结果，直接查全表（覆盖孤儿数据和首次使用场景）
         if (result.getTotalElements() == 0) {
             if (keyword == null || keyword.trim().isEmpty()) {
-                return studentRepository.findStudentsByTeacherId(teacherId, pageable);
+                return studentRepository.findAll(pageable);
             }
-            return studentRepository.searchStudentsByTeacherId(teacherId, keyword.trim(), pageable);
+            return studentRepository.searchByKeyword(keyword.trim(), pageable);
         }
         return result;
     }
@@ -174,34 +214,41 @@ public class StudentServiceImpl implements StudentService {
         } else {
             result = courseStudentRepository.searchStudentsByTeacherIdAndCourseId(teacherId, courseId, keyword.trim(), pageable);
         }
-        // 回退：如果 CourseStudent 表为空，通过 Attendance 表查询（兼容旧数据）
+        // 回退：如果指定课程下无结果，先尝试 UNION 查询，再回退到全表查询
         if (result.getTotalElements() == 0) {
-            // Attendance 回退只支持 teacherId 范围，courseId 在外部无直接查询，此处退回 teacher 级
             if (keyword == null || keyword.trim().isEmpty()) {
-                return studentRepository.findStudentsByTeacherId(teacherId, pageable);
+                result = studentRepository.findStudentsByTeacherIdUnion(teacherId, pageable);
+            } else {
+                result = studentRepository.searchStudentsByTeacherIdUnion(teacherId, keyword.trim(), pageable);
             }
-            return studentRepository.searchStudentsByTeacherId(teacherId, keyword.trim(), pageable);
+        }
+        // 最终回退：全表查询（覆盖孤儿数据）
+        if (result.getTotalElements() == 0) {
+            if (keyword == null || keyword.trim().isEmpty()) {
+                return studentRepository.findAll(pageable);
+            }
+            return studentRepository.searchByKeyword(keyword.trim(), pageable);
         }
         return result;
     }
 
     @Override
     public List<Student> quickSearchByTeacher(Integer teacherId, String keyword) {
+        // UNION 查询：同时覆盖 CourseStudent 和 Attendance 两个数据源
         List<Student> result;
         if (keyword == null || keyword.trim().isEmpty()) {
-            result = courseStudentRepository.findStudentsByTeacherId(teacherId,
+            result = studentRepository.findStudentsByTeacherIdUnion(teacherId,
                     PageRequest.of(0, 10, Sort.by("name"))).getContent();
         } else {
-            result = courseStudentRepository.searchStudentsByTeacherId(teacherId, keyword.trim(),
+            result = studentRepository.searchStudentsByTeacherIdUnion(teacherId, keyword.trim(),
                     PageRequest.of(0, 10, Sort.by("name"))).getContent();
         }
-        // 回退：兼容旧数据
+        // 回退：如果 UNION 查询无结果，直接查全表
         if (result.isEmpty()) {
             if (keyword == null || keyword.trim().isEmpty()) {
-                return studentRepository.findStudentsByTeacherId(teacherId,
-                        PageRequest.of(0, 10, Sort.by("name"))).getContent();
+                return studentRepository.findAll(PageRequest.of(0, 10, Sort.by("name"))).getContent();
             }
-            return studentRepository.searchStudentsByTeacherId(teacherId, keyword.trim(),
+            return studentRepository.searchByKeyword(keyword.trim(),
                     PageRequest.of(0, 10, Sort.by("name"))).getContent();
         }
         return result;
@@ -219,10 +266,11 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public List<Student> getAllStudentsByTeacher(Integer teacherId) {
-        List<Student> result = courseStudentRepository.findAllStudentsByTeacherId(teacherId);
-        // 回退：兼容旧数据
+        // UNION 查询：同时覆盖 CourseStudent 和 Attendance 两个数据源
+        List<Student> result = studentRepository.findAllStudentsByTeacherIdUnion(teacherId);
+        // 回退：如果 UNION 查询无结果，直接查全表（覆盖孤儿数据）
         if (result.isEmpty()) {
-            return studentRepository.findAllStudentsByTeacherId(teacherId);
+            return studentRepository.findAll(Sort.by("id"));
         }
         return result;
     }
@@ -347,7 +395,7 @@ public class StudentServiceImpl implements StudentService {
         boolean hasKeyword = keyword != null && !keyword.trim().isEmpty();
 
         if (courseId != null) {
-            // 按课程筛选
+            // 按课程筛选：优先从 CourseStudent 查询
             if (hasKeyword) {
                 result = courseStudentRepository.searchStudentsByTeacherIdAndCourseId(
                         teacherId, courseId, keyword.trim(),
@@ -355,23 +403,32 @@ public class StudentServiceImpl implements StudentService {
             } else {
                 result = courseStudentRepository.findAllStudentsByTeacherIdAndCourseId(teacherId, courseId);
             }
+            // 回退1：课程筛选无结果，尝试 UNION 查询
+            if (result.isEmpty()) {
+                if (hasKeyword) {
+                    result = studentRepository.searchStudentsByTeacherIdUnion(teacherId, keyword.trim(),
+                            PageRequest.of(0, Integer.MAX_VALUE, Sort.by("studentId"))).getContent();
+                } else {
+                    result = studentRepository.findAllStudentsByTeacherIdUnion(teacherId);
+                }
+            }
         } else {
-            // 教师全量（支持关键字过滤）
+            // 教师全量：使用 UNION 查询
             if (hasKeyword) {
-                result = courseStudentRepository.searchStudentsByTeacherId(teacherId, keyword.trim(),
+                result = studentRepository.searchStudentsByTeacherIdUnion(teacherId, keyword.trim(),
                         PageRequest.of(0, Integer.MAX_VALUE, Sort.by("studentId"))).getContent();
             } else {
-                result = courseStudentRepository.findAllStudentsByTeacherId(teacherId);
+                result = studentRepository.findAllStudentsByTeacherIdUnion(teacherId);
             }
         }
 
-        // 回退：兼容仅通过 Attendance 关联的旧数据
+        // 最终回退：全表查询（覆盖孤儿数据）
         if (result.isEmpty()) {
             if (hasKeyword) {
-                return studentRepository.searchStudentsByTeacherId(teacherId, keyword.trim(),
+                return studentRepository.searchByKeyword(keyword.trim(),
                         PageRequest.of(0, Integer.MAX_VALUE, Sort.by("studentId"))).getContent();
             }
-            return studentRepository.findAllStudentsByTeacherId(teacherId);
+            return studentRepository.findAll(Sort.by("studentId"));
         }
         return result;
     }

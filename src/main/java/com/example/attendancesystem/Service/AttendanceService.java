@@ -39,5 +39,6 @@ public interface AttendanceService {
                                                  LocalDate startDate, LocalDate endDate, Pageable pageable);
     List<Attendance> exportAttendancesByTeacher(Integer teacherId, Integer courseId,
                                                  LocalDate startDate, LocalDate endDate);
-    Page<Attendance> getAttendancesByStudentPaged(Integer studentId, Pageable pageable);
+    Page<Attendance> getAttendancesByStudentPaged(Integer studentId, Integer courseId,
+                                                   LocalDate startDate, LocalDate endDate, Pageable pageable);
 }

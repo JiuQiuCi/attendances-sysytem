@@ -230,12 +230,27 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     @Override
-    public Page<Attendance> getAttendancesByStudentPaged(Integer studentId, Pageable pageable) {
+    public Page<Attendance> getAttendancesByStudentPaged(Integer studentId, Integer courseId,
+                                                          LocalDate startDate, LocalDate endDate, Pageable pageable) {
         // Use specification to build dynamic query for student
         Specification<Attendance> spec = (root, query, cb) -> {
             Join<Object, Object> studentJoin = root.join("student");
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(studentJoin.get("id"), studentId));
+
+            // 课程筛选
+            if (courseId != null) {
+                Join<Object, Object> courseJoin = root.join("course");
+                predicates.add(cb.equal(courseJoin.get("id"), courseId));
+            }
+            // 日期范围筛选
+            if (startDate != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("attendanceDate"), startDate));
+            }
+            if (endDate != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("attendanceDate"), endDate));
+            }
+
             return cb.and(predicates.toArray(new Predicate[0]));
         };
         return attendanceRepository.findAll(spec, pageable);

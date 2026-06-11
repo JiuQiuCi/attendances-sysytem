@@ -30,9 +30,10 @@ public class StudentController {
     // 新增学生
     @PostMapping("/add")
     @PreAuthorize("hasRole('TEACHER')")
-    public Result<Student> addStudent(@RequestBody Student student) {
+    public Result<Student> addStudent(@RequestBody Student student,
+                                      @RequestParam(required = false) Integer courseId) {
         try {
-            Student saved = studentService.addStudent(student);
+            Student saved = studentService.addStudent(student, courseId);
             return Result.success(saved);
         } catch (IllegalArgumentException e) {
             return Result.error(400, e.getMessage());

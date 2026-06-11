@@ -44,4 +44,27 @@ public interface StudentRepository extends JpaRepository<Student, Integer>, JpaS
     @Query("SELECT s FROM Student s WHERE EXISTS " +
            "(SELECT a FROM Attendance a JOIN a.course c WHERE a.student = s AND c.teacherId = :teacherId) ORDER BY s.id")
     List<Student> findAllStudentsByTeacherId(@Param("teacherId") Integer teacherId);
+
+    // ===== UNION 查询：同时覆盖 CourseStudent 和 Attendance 数据源 =====
+
+    // 教师可见的所有学生（通过 CourseStudent 或 Attendance 关联）
+    @Query("SELECT s FROM Student s WHERE " +
+           "EXISTS (SELECT cs FROM CourseStudent cs JOIN cs.course c WHERE cs.student = s AND c.teacherId = :teacherId) " +
+           "OR EXISTS (SELECT a FROM Attendance a JOIN a.course c WHERE a.student = s AND c.teacherId = :teacherId)")
+    Page<Student> findStudentsByTeacherIdUnion(@Param("teacherId") Integer teacherId, Pageable pageable);
+
+    // 教师可见的学生（带关键字搜索）
+    @Query("SELECT s FROM Student s WHERE (" +
+           "EXISTS (SELECT cs FROM CourseStudent cs JOIN cs.course c WHERE cs.student = s AND c.teacherId = :teacherId) " +
+           "OR EXISTS (SELECT a FROM Attendance a JOIN a.course c WHERE a.student = s AND c.teacherId = :teacherId)) " +
+           "AND (s.name LIKE %:keyword% OR s.studentId LIKE %:keyword%)")
+    Page<Student> searchStudentsByTeacherIdUnion(@Param("teacherId") Integer teacherId,
+                                                  @Param("keyword") String keyword,
+                                                  Pageable pageable);
+
+    // 教师可见的所有学生（不分页，导出用）
+    @Query("SELECT s FROM Student s WHERE " +
+           "EXISTS (SELECT cs FROM CourseStudent cs JOIN cs.course c WHERE cs.student = s AND c.teacherId = :teacherId) " +
+           "OR EXISTS (SELECT a FROM Attendance a JOIN a.course c WHERE a.student = s AND c.teacherId = :teacherId) ORDER BY s.id")
+    List<Student> findAllStudentsByTeacherIdUnion(@Param("teacherId") Integer teacherId);
 }
